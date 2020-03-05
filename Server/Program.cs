@@ -9,6 +9,7 @@ namespace Server
     {
         static void Main(string[] args)
         {
+            NetPacketProcessor _netPacketProcessor = new NetPacketProcessor();
             EventBasedNetListener listener = new EventBasedNetListener();
             NetManager server = new NetManager(listener);
             server.Start(9050 /* port */);
@@ -29,12 +30,26 @@ namespace Server
                 peer.Send(writer, DeliveryMethod.ReliableOrdered);             // Send with reliability
             };
 
+            listener.NetworkReceiveEvent += (peer, reader, deliveryMethod) =>
+            {
+                _netPacketProcessor.ReadAllPackets(reader, peer);
+            };
+
+            _netPacketProcessor.SubscribeReusable<Packet.Position, NetPeer>(OnPositionPacketReceived);
+
             while (!Console.KeyAvailable)
             {
                 server.PollEvents();
                 Thread.Sleep(15);
             }
             server.Stop();
+        }
+
+        public static void OnPositionPacketReceived(Packet.Position position, NetPeer peer)
+        {
+            Console.WriteLine(position.ToString());
+            Console.WriteLine(position.x);
+            Console.WriteLine(position.y);
         }
     }
 }
