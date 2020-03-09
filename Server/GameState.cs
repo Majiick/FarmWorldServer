@@ -13,14 +13,13 @@ namespace Server
 
         public GameState()
         {
-            SubscribeReusable<Packet.Position, LiteNetLib.NetPeer>(OnPositionPacketReceived);
+            SubscribeReusable<Packet.PlayerTransform, LiteNetLib.NetPeer>(OnPositionPacketReceived);
             SubscribeReusable<Packet.Login, LiteNetLib.NetPeer>(OnLoginReceived);
         }
 
-        void OnPositionPacketReceived(Packet.Position position, NetPeer peer)
+        void OnPositionPacketReceived(Packet.PlayerTransform transform, NetPeer peer)
         {
-            connectedPlayers[position.userName].lastX = position.x;
-            connectedPlayers[position.userName].lastY = position.y;
+            connectedPlayers[transform.userName].lastTransform = transform;
         }
 
         void OnLoginReceived(Packet.Login login, NetPeer peer)
@@ -56,9 +55,7 @@ namespace Server
                 foreach (Player otherPlayer in connectedPlayers.Values)
                 {
                     if (player == otherPlayer) continue;
-                    player._netPeer.Send(_netPacketProcessor.Write(
-                        new Packet.Position { x = otherPlayer.lastX, y = otherPlayer.lastY, userName = otherPlayer._userName }), 
-                        DeliveryMethod.ReliableSequenced);
+                    player._netPeer.Send(_netPacketProcessor.Write(otherPlayer.lastTransform), DeliveryMethod.ReliableSequenced);
                 }
             }
         }

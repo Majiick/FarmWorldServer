@@ -9,9 +9,8 @@ namespace Server
     {
         public NetPeer _netPeer;
         public string _userName;
-        public float lastX { get; set; }
-        public float lastY { get; set; }
-        
+        public Packet.PlayerTransform lastTransform;
+
         public Player(string userName, NetPeer netPeer)
         {
             _userName = userName;
