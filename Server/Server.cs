@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Net;
 using System.Net.Sockets;
+using System.Diagnostics;
 
 namespace Server
 {
@@ -76,11 +77,17 @@ namespace Server
             listener.Setup(gameState);
             _server.Start(port);
 
+            Stopwatch stopWatch = new Stopwatch();
             while (!Console.KeyAvailable)
             {
+                stopWatch.Start();
                 _server.PollEvents();
                 gameState.Tick();
-                Thread.Sleep(50);  // Change this to a forever loop that just checks time.time
+                while (stopWatch.ElapsedMilliseconds < 50)
+                {
+                    Thread.Sleep(1);
+                }
+                stopWatch.Reset();
             }
             _server.Stop();
         }

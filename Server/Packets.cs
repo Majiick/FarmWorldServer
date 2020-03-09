@@ -21,8 +21,14 @@ namespace Packet
     {
         public float x { get; set; }
         public float y { get; set; }
+        public float z { get; set; }
         public float rot_x { get; set; }
         public float rot_y { get; set; }
         public float rot_z { get; set; }
+
+        public PlayerTransform Clone()
+        {
+            return (PlayerTransform)this.MemberwiseClone();
+        }
     }
 }

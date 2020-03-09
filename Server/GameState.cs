@@ -19,7 +19,7 @@ namespace Server
 
         void OnPositionPacketReceived(Packet.PlayerTransform transform, NetPeer peer)
         {
-            connectedPlayers[transform.userName].lastTransform = transform;
+            connectedPlayers[transform.userName].lastTransform = transform.Clone();
         }
 
         void OnLoginReceived(Packet.Login login, NetPeer peer)
@@ -55,7 +55,7 @@ namespace Server
                 foreach (Player otherPlayer in connectedPlayers.Values)
                 {
                     if (player == otherPlayer) continue;
-                    player._netPeer.Send(_netPacketProcessor.Write(otherPlayer.lastTransform), DeliveryMethod.ReliableSequenced);
+                    otherPlayer._netPeer.Send(_netPacketProcessor.Write(player.lastTransform), DeliveryMethod.ReliableSequenced);
                 }
             }
         }
