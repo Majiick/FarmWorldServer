@@ -12,11 +12,19 @@ namespace Packet
         public string userName { get; set; }  // This is a unique identifier.
     }
 
+    // Login is only for server.
     class Login : Identifier
     {
 
     }
 
+    // PlayerExited is only for client. (Server uses OnPeerDisconnected LiteNetLib event.)
+    class PlayerExited : Identifier
+    {
+
+    }
+
+    // PlayerTransform is for both server and players.
     class PlayerTransform : Identifier
     {
         public float x { get; set; }

@@ -10,6 +10,7 @@ namespace Server
     class GameState : NetPacketProcessor
     {
         Dictionary<string, Player> connectedPlayers = new Dictionary<string, Player>();
+        NetPacketProcessor _netPacketProcessor = new NetPacketProcessor();
 
         public GameState()
         {
@@ -43,20 +44,25 @@ namespace Server
                 return;
             }
 
+            SendToAllOtherPlayers(p, _netPacketProcessor.Write(new Packet.PlayerExited { userName = p._userName }));
             Console.WriteLine("Player {0} logged out.", p._userName);
             connectedPlayers.Remove(p._userName);
         }
 
         public void Tick()
         {
-            NetPacketProcessor _netPacketProcessor = new NetPacketProcessor();
             foreach (Player player in connectedPlayers.Values)
             {
-                foreach (Player otherPlayer in connectedPlayers.Values)
-                {
-                    if (player == otherPlayer) continue;
-                    otherPlayer._netPeer.Send(_netPacketProcessor.Write(player.lastTransform), DeliveryMethod.ReliableSequenced);
-                }
+                SendToAllOtherPlayers(player, _netPacketProcessor.Write(player.lastTransform));
+            }
+        }
+
+        void SendToAllOtherPlayers(Player excluded, byte[] bytes)
+        {
+            foreach (Player player in connectedPlayers.Values)
+            {
+                if (player == excluded) continue;
+                player._netPeer.Send(bytes, DeliveryMethod.ReliableSequenced);
             }
         }
     }
