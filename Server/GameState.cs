@@ -20,7 +20,7 @@ namespace Server
 
         void OnPositionPacketReceived(Packet.PlayerTransform transform, NetPeer peer)
         {
-            connectedPlayers[transform.userName].lastTransform = transform.Clone();
+            connectedPlayers[transform.userName].lastTransform = transform.Copy();
         }
 
         void OnLoginReceived(Packet.Login login, NetPeer peer)
