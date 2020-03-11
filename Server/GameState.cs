@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Linq;
+using System.Threading;
 
 namespace Server
 {
@@ -16,6 +17,16 @@ namespace Server
         {
             SubscribeReusable<Packet.PlayerTransform, LiteNetLib.NetPeer>(OnPositionPacketReceived);
             SubscribeReusable<Packet.Login, LiteNetLib.NetPeer>(OnLoginReceived);
+            SubscribeReusable<Packet.StartMining, LiteNetLib.NetPeer>(OnStartMiningPacketReceived);
+        }
+
+        void OnStartMiningPacketReceived(Packet.StartMining sm, NetPeer peer)
+        {
+            // Lock object
+            // Send out notification to all other players.
+            // Send out EndMining to player 1 sec later.
+            Thread.Sleep(1000);
+            peer.Send(_netPacketProcessor.Write(new Packet.EndMining { id = sm.id }), DeliveryMethod.ReliableSequenced);
         }
 
         void OnPositionPacketReceived(Packet.PlayerTransform transform, NetPeer peer)
@@ -37,7 +48,17 @@ namespace Server
 
         public void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
         {
-            Player p = connectedPlayers.Values.Single(p => p._netPeer == peer);
+            Player p;
+            try
+            {
+                p = connectedPlayers.Values.Single(p => p._netPeer == peer);
+            } 
+            catch (InvalidOperationException)
+            {
+                Console.WriteLine(String.Format("Peer {0} disconnected but was not found in connectedPlayers.", peer.EndPoint));
+                return;
+            }
+            
             if (p == null)
             {
                 Console.WriteLine("IP {0} was not logged in but tried to log out.", peer.EndPoint);

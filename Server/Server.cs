@@ -68,9 +68,11 @@ namespace Server
         public readonly int port = 9050;
         public readonly int maxClients = 10;
         NetManager _server;
+        Database _db;
 
         public void BlockingStart()
         {
+            // _db = new Database();
             GameState gameState = new GameState();
             Listener listener = new Listener();
             _server = new NetManager(listener);
