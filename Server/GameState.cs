@@ -12,22 +12,27 @@ namespace Server
     class GameState : NetPacketProcessor
     {
         Dictionary<string, Player> _connectedPlayers = new Dictionary<string, Player>();
-        NetPacketProcessor _netPacketProcessor = new NetPacketProcessor();
         List<DelayedEvent> _delayedEvents = new List<DelayedEvent>();
         public long TickStartTime { get; set; }  // Gets set by the Server at the start of the tick.
+        Database _db;
 
-        public GameState()
+        public GameState(Database db)
         {
-            SubscribeReusable<Packet.PlayerTransform, LiteNetLib.NetPeer>(OnPositionPacketReceived);
+            _db = db;
+
+            RegisterNestedType<ObjectSchema.Mineable>();
+
+            SubscribeReusable<Packet.PlayerTransform, LiteNetLib.NetPeer>(OnPlayerTransformReceived);
             SubscribeReusable<Packet.Login, LiteNetLib.NetPeer>(OnLoginReceived);
             SubscribeReusable<Packet.StartMining, LiteNetLib.NetPeer>(OnStartMiningPacketReceived);
+            SubscribeReusable<Packet.Developer.PlaceMinableObject, LiteNetLib.NetPeer>(PlaceMinableObjectPacketReceived);
         }
 
         public void Tick()
         {
             foreach (Player player in _connectedPlayers.Values)
             {
-                SendToAllOtherPlayers(player, _netPacketProcessor.Write(player.lastTransform));
+                SendToAllOtherPlayers(player, this.Write(player.lastTransform));
             }
 
             ExecuteDelayedEvents();
@@ -64,17 +69,23 @@ namespace Server
             }
         }
 
+        void PlaceMinableObjectPacketReceived(Packet.Developer.PlaceMinableObject obj, NetPeer peer)
+        {
+            _db.Write(ObjectSchema.ObjectTypes.MineableBaseID, obj.mineable.Serialize());
+            //_db.Read("random_id");
+        }
+
         void OnStartMiningPacketReceived(Packet.StartMining sm, NetPeer peer)
         {
             // TODO: Lock object
             // TODO: Send out notification to all other players.
             AddDelayedEvent(
-                () => peer.Send(_netPacketProcessor.Write(new Packet.EndMining { id = sm.id }), DeliveryMethod.ReliableSequenced),
+                () => peer.Send(this.Write(new Packet.EndMining { id = sm.id }), DeliveryMethod.ReliableSequenced),
                 3 * Time.SECOND);
             
         }
 
-        void OnPositionPacketReceived(Packet.PlayerTransform transform, NetPeer peer)
+        void OnPlayerTransformReceived(Packet.PlayerTransform transform, NetPeer peer)
         {
             _connectedPlayers[transform.userName].lastTransform = transform.Copy();
         }
@@ -104,7 +115,7 @@ namespace Server
                 return;
             }
 
-            SendToAllOtherPlayers(p, _netPacketProcessor.Write(new Packet.PlayerExited { userName = p._userName }));
+            SendToAllOtherPlayers(p, this.Write(new Packet.PlayerExited { userName = p._userName }));
             Console.WriteLine("Player {0} logged out.", p._userName);
             _connectedPlayers.Remove(p._userName);
         }

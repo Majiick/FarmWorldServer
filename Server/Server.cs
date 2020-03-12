@@ -73,7 +73,7 @@ namespace Server
         public void BlockingStart()
         {
             _db = new Database();
-            GameState gameState = new GameState();
+            GameState gameState = new GameState(_db);
             Listener listener = new Listener();
             _server = new NetManager(listener);
             listener.Setup(gameState);
