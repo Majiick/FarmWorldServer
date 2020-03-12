@@ -33,7 +33,7 @@ namespace Server
             ExecuteDelayedEvents();
         }
 
-        void AddDelayedEvent(Action action, float executionDelay)
+        void AddDelayedEvent(Action action, long executionDelay)
         {
             _delayedEvents.Add(new DelayedEvent(action, executeAt: TickStartTime + executionDelay));
         }
@@ -43,7 +43,7 @@ namespace Server
             List<DelayedEvent> notExecuted = new List<DelayedEvent>(_delayedEvents.Count);
             foreach (DelayedEvent e in _delayedEvents)
             {
-                if (e.ExecuteAt >= TickStartTime)
+                if (TickStartTime >= e.ExecuteAt)
                 {
                     e.Action();
                 } else
