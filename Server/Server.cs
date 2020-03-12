@@ -72,25 +72,28 @@ namespace Server
 
         public void BlockingStart()
         {
-            // _db = new Database();
+            _db = new Database();
             GameState gameState = new GameState();
             Listener listener = new Listener();
             _server = new NetManager(listener);
             listener.Setup(gameState);
             _server.Start(port);
 
-            Stopwatch stopWatch = new Stopwatch();
+            Stopwatch _precisionTime = new Stopwatch();
+            _precisionTime.Start();
             while (!Console.KeyAvailable)
             {
-                stopWatch.Start();
+                gameState.TickStartTime = _precisionTime.ElapsedMilliseconds;
                 _server.PollEvents();
                 gameState.Tick();
-                while (stopWatch.ElapsedMilliseconds < 50)
+
+                // Wait until time for next tick.
+                while (_precisionTime.ElapsedMilliseconds < gameState.TickStartTime + 50)
                 {
                     Thread.Sleep(1);
                 }
-                stopWatch.Reset();
             }
+
             _server.Stop();
         }
     }
