@@ -16,11 +16,13 @@ namespace ObjectSchema
         *              so that the Packets are coded/decoded correctly but also so that the database is forward compatible.
         * Another Warning: LiteNetLib only supports nested types that are only 1 level deep. Code: https://github.com/RevenantX/LiteNetLib/blob/master/LiteNetLib/Utils/NetSerializer.cs#L83
     */
+#if !UNITY_STANDALONE
     interface IFromJson<T>
     {
         // ref T obj is the object passed by reference this 'this' keyword is passed by value on structs.
         void FromJson(Newtonsoft.Json.Linq.JObject json, ref T obj);
     }
+#endif
 
     interface IObject
     {
@@ -34,7 +36,10 @@ namespace ObjectSchema
         string size { get; set; }
     }
 
-    struct Mineable : Packet.ITransform, IObject, IMineable, INetSerializable, IFromJson<Mineable>
+    struct Mineable : Packet.ITransform, IObject, IMineable, INetSerializable
+#if !UNITY_STANDALONE
+        , IFromJson<Mineable>
+#endif
     {
         public string id { get; set; }
         public string type { get; set; }
@@ -80,6 +85,7 @@ namespace ObjectSchema
             writer.Put(rot_w);
         }
 
+#if !UNITY_STANDALONE
         public void FromJson(Newtonsoft.Json.Linq.JObject json, ref Mineable obj)
         {
             obj.id = json.Value<string>("id");
@@ -94,6 +100,7 @@ namespace ObjectSchema
             obj.rot_z = json.Value<float>("rot_z");
             obj.rot_w = json.Value<float>("rot_w");
         }
+#endif
 
         public override string ToString()
         {
