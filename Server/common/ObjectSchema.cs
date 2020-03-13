@@ -101,11 +101,6 @@ namespace ObjectSchema
             obj.rot_w = json.Value<float>("rot_w");
         }
 #endif
-
-        public override string ToString()
-        {
-            return x.ToString();
-        }
     }
 
     class ObjectTypes

@@ -74,6 +74,8 @@ namespace Server
         public void BlockingStart()
         {
             _db = new Database();
+            _db.ReadAllObjects<ObjectSchema.Mineable>(ObjectSchema.ObjectTypes.IObjectType.MINEABLE);
+            return;
             GameState gameState = new GameState(_db);
             Listener listener = new Listener();
             _server = new NetManager(listener);
