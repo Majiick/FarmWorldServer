@@ -119,11 +119,11 @@ namespace Packet
     {
         public ObjectSchema.Mineable mineable { get; set; }
 
-    public PlaceMinableObject Copy()
-    {
-        return (PlaceMinableObject)this.MemberwiseClone();
+        public PlaceMinableObject Copy()
+        {
+            return (PlaceMinableObject)this.MemberwiseClone();
+        }
     }
-}
 
     namespace Developer
     {

@@ -118,7 +118,7 @@ namespace Server
 
                 T obj = new T();
                 obj.FromJson(IObject, ref obj);
-                obj.id = row.G;
+                obj.id = id;
                 ret.Add(obj);
             }
 

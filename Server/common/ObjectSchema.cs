@@ -36,7 +36,7 @@ namespace ObjectSchema
         string size { get; set; }
     }
 
-    struct Mineable : Packet.ITransform, IObject, IMineable, INetSerializable
+    public struct Mineable : Packet.ITransform, IObject, IMineable, INetSerializable
 #if !UNITY_STANDALONE
         , IFromJson<Mineable>
 #endif
@@ -44,6 +44,7 @@ namespace ObjectSchema
         public string id { get; set; }
         public string type { get; set; }
         public string mineableType { get; set; }
+        public string subMineableType { get; set; }
         public string size { get; set; }
         public float x { get; set; }
         public float y { get; set; }
@@ -58,6 +59,7 @@ namespace ObjectSchema
             id = reader.GetString();
             type = reader.GetString();
             mineableType = reader.GetString();
+            subMineableType = reader.GetString();
             size = reader.GetString();
 
             x = reader.GetFloat();
@@ -74,6 +76,7 @@ namespace ObjectSchema
             writer.Put(id);
             writer.Put(type);
             writer.Put(mineableType);
+            writer.Put(subMineableType);
             writer.Put(size);
 
             writer.Put(x);
@@ -91,6 +94,7 @@ namespace ObjectSchema
             obj.id = json.Value<string>("id");
             obj.type = json.Value<string>("type");
             obj.mineableType = json.Value<string>("mineableType");
+            obj.subMineableType = json.Value<string>("subMineableType");
             obj.size = json.Value<string>("size");
             obj.x = json.Value<float>("x");
             obj.y = json.Value<float>("y");
@@ -120,6 +124,13 @@ namespace ObjectSchema
             public string Value { get; set; }
             public static IMineableMineableType ROCK { get { return new IMineableMineableType("ROCK"); } }
             public static IMineableMineableType TREE { get { return new IMineableMineableType("TREE"); } }
+        }
+        public class IMineableSubMineableType
+        {
+            private IMineableSubMineableType(string value) { Value = value; }
+            public string Value { get; set; }
+            public static IMineableSubMineableType STONE { get { return new IMineableSubMineableType("STONE"); } }
+            public static IMineableSubMineableType IRON { get { return new IMineableSubMineableType("IRON"); } }
         }
         public class IMineableSize
         {
