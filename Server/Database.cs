@@ -80,7 +80,7 @@ namespace Server
 
         /* ReadAllObjects returns all of the objects of a particular type.
          * 
-         * Example of data returned for "SELECT  meta(`FarmWorld`).id, * FROM `FarmWorld` WHERE type = 'MINEABLE'"
+         * Example of one row of data returned for "SELECT  meta(`FarmWorld`).id, * FROM `FarmWorld` WHERE type = 'MINEABLE'"
          *  {
               "FarmWorld": {
                 "id": "",

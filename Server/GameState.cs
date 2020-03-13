@@ -100,6 +100,7 @@ namespace Server
 
             Console.WriteLine("Player {0} logged in.", login.userName);
             _connectedPlayers[login.userName] = new Player(login.userName, peer);
+            // // _db.ReadAllObjects<ObjectSchema.Mineable>(ObjectSchema.ObjectTypes.IObjectType.MINEABLE);
         }
 
         public void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
