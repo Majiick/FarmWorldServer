@@ -33,16 +33,10 @@ namespace Packet
         float rot_w { get; set; }
     }
 
-    class DestroyObject : ITransform, ObjectIdentifier, ICopyAble<DestroyObject>
+    // DestroyObject is only for client.
+    class DestroyObject : ObjectIdentifier, ICopyAble<DestroyObject>
     {
         public string id { get; set; }
-        public float x { get; set; }
-        public float y { get; set; }
-        public float z { get; set; }
-        public float rot_x { get; set; }
-        public float rot_y { get; set; }
-        public float rot_z { get; set; }
-        public float rot_w { get; set; }
 
         public DestroyObject Copy()
         {
@@ -120,15 +114,26 @@ namespace Packet
         }
     }
 
+    // PlaceMinableObject is only for client.
+    class PlaceMinableObject : ICopyAble<PlaceMinableObject>
+    {
+        ObjectSchema.Mineable mineable { get; set; }
+
+    public PlaceMinableObject Copy()
+    {
+        return (PlaceMinableObject)this.MemberwiseClone();
+    }
+}
+
     namespace Developer
     {
-        class PlaceMinableObject : ICopyAble<PlaceMinableObject>
+        class DeveloperPlaceMinableObject : ICopyAble<DeveloperPlaceMinableObject>
         {
             public ObjectSchema.Mineable mineable { get; set; }
 
-            public PlaceMinableObject Copy()
+            public DeveloperPlaceMinableObject Copy()
             {
-                return (PlaceMinableObject)this.MemberwiseClone();
+                return (DeveloperPlaceMinableObject)this.MemberwiseClone();
             }
         }
     }

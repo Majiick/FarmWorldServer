@@ -61,7 +61,7 @@ namespace Server
             return id;
         }
 
-        public T Read<T>(string id) where T : ObjectSchema.IFromJson<T>, new()
+        public T Read<T>(string id) where T : ObjectSchema.IFromJson<T>, ObjectSchema.IObject, new()
         {
             var get = _bucket.GetDocument<dynamic>(id);
             if (!get.Success)
@@ -73,6 +73,7 @@ namespace Server
             var document = get.Document;
             T obj = new T();
             obj.FromJson(document.Content, ref obj);
+            obj.id = document.Id;
             return obj;
         }
     }

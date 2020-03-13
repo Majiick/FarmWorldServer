@@ -25,7 +25,7 @@ namespace Server
             SubscribeReusable<Packet.PlayerTransform, LiteNetLib.NetPeer>(OnPlayerTransformReceived);
             SubscribeReusable<Packet.Login, LiteNetLib.NetPeer>(OnLoginReceived);
             SubscribeReusable<Packet.StartMining, LiteNetLib.NetPeer>(OnStartMiningPacketReceived);
-            SubscribeReusable<Packet.Developer.PlaceMinableObject, LiteNetLib.NetPeer>(PlaceMinableObjectPacketReceived);
+            SubscribeReusable<Packet.Developer.DeveloperPlaceMinableObject, LiteNetLib.NetPeer>(PlaceMinableObjectPacketReceived);
         }
 
         public void Tick()
@@ -69,7 +69,7 @@ namespace Server
             }
         }
 
-        void PlaceMinableObjectPacketReceived(Packet.Developer.PlaceMinableObject obj, NetPeer peer)
+        void PlaceMinableObjectPacketReceived(Packet.Developer.DeveloperPlaceMinableObject obj, NetPeer peer)
         {
             var id = _db.Write(ObjectSchema.ObjectTypes.MineableBaseID, obj.mineable);
             // ObjectSchema.Mineable m = _db.Read<ObjectSchema.Mineable>(id);
