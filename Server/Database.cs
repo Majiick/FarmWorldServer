@@ -67,7 +67,7 @@ namespace Server
             if (!get.Success)
             {
                 Console.Write(String.Format("Failed to retrieve object: {0}", id));
-                return default(T);
+                return default(T);  // TODO: This should raise an Exception
             }
            
             var document = get.Document;

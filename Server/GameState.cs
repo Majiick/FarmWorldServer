@@ -72,7 +72,7 @@ namespace Server
         void PlaceMinableObjectPacketReceived(Packet.Developer.PlaceMinableObject obj, NetPeer peer)
         {
             var id = _db.Write(ObjectSchema.ObjectTypes.MineableBaseID, obj.mineable);
-            ObjectSchema.Mineable m = _db.Read<ObjectSchema.Mineable>(id);
+            // ObjectSchema.Mineable m = _db.Read<ObjectSchema.Mineable>(id);
         }
 
         void OnStartMiningPacketReceived(Packet.StartMining sm, NetPeer peer)
