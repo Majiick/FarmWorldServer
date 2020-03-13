@@ -67,6 +67,7 @@ namespace Server
     {
         public readonly int port = 9050;
         public readonly int maxClients = 10;
+        public readonly int ticksPerSecond = 10;
         NetManager _server;
         Database _db;
 
@@ -88,7 +89,7 @@ namespace Server
                 gameState.Tick();
 
                 // Wait until time for next tick.
-                while (_precisionTime.ElapsedMilliseconds < gameState.TickStartTime + 50)
+                while (_precisionTime.ElapsedMilliseconds < gameState.TickStartTime + (1000 / ticksPerSecond))
                 {
                     Thread.Sleep(1);
                 }

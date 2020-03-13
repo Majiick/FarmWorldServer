@@ -4,10 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-#if !UNITY_STANDALONE
-using System.Text.Json;
-using System.Text.Json.Serialization;
-#endif
 
 namespace ObjectSchema
 {
@@ -20,10 +16,10 @@ namespace ObjectSchema
         *              so that the Packets are coded/decoded correctly but also so that the database is forward compatible.
         * Another Warning: LiteNetLib only supports nested types that are only 1 level deep. Code: https://github.com/RevenantX/LiteNetLib/blob/master/LiteNetLib/Utils/NetSerializer.cs#L83
     */
-    interface IJson<T>
+    interface IFromJson<T>
     {
-        string Serialize();
-        T Deserialize(string json);
+        // ref T obj is the object passed by reference this 'this' keyword is passed by value on structs.
+        void FromJson(Newtonsoft.Json.Linq.JObject json, ref T obj);
     }
 
     interface IObject
@@ -38,7 +34,7 @@ namespace ObjectSchema
         string size { get; set; }
     }
 
-    struct Mineable : Packet.ITransform, IObject, IMineable, INetSerializable, IJson<Mineable>
+    struct Mineable : Packet.ITransform, IObject, IMineable, INetSerializable, IFromJson<Mineable>
     {
         public string id { get; set; }
         public string type { get; set; }
@@ -84,27 +80,26 @@ namespace ObjectSchema
             writer.Put(rot_w);
         }
 
-#if !UNITY_STANDALONE
-        public Mineable Deserialize(string json)
+        public void FromJson(Newtonsoft.Json.Linq.JObject json, ref Mineable obj)
         {
-            return JsonSerializer.Deserialize<Mineable>(json);
+            obj.id = json.Value<string>("id");
+            obj.type = json.Value<string>("type");
+            obj.mineableType = json.Value<string>("mineableType");
+            obj.size = json.Value<string>("size");
+            obj.x = json.Value<float>("x");
+            obj.y = json.Value<float>("y");
+            obj.z = json.Value<float>("z");
+            obj.rot_x = json.Value<float>("rot_x");
+            obj.rot_y = json.Value<float>("rot_y");
+            obj.rot_z = json.Value<float>("rot_z");
+            obj.rot_w = json.Value<float>("rot_w");
         }
 
-        public string Serialize()
+        public override string ToString()
         {
-            return JsonSerializer.Serialize(this);
+            return x.ToString();
         }
-#else
-        public string Serialize() {
-            throw new NotImplementedException();
-        }
-
-        public Mineable Deserialize(string json) {
-            throw new NotImplementedException();
-        }
-#endif
     }
-
 
     class ObjectTypes
     {

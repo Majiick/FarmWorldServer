@@ -34,35 +34,46 @@ namespace Server
             var upsert = _bucket.Upsert(document);
         }
 
-        public void Write(string baseId, string json)
+        // Returns id of written object.
+        public string Write(string baseId, ObjectSchema.IObject obj)  // TODO: Make async.
         {
             var idResult = _bucket.Increment(baseId);
             if (!idResult.Success)
             {
                 Console.WriteLine(String.Format("Failed to get next increment for baseId {0}.", baseId));
-                return;
+                return "";
             }
+
             string id = baseId + idResult.Value.ToString();
 
             var document = new Document<dynamic>
             {
                 Id = id,
-                Content = json
+                Content = obj
             };
             var upsert = _bucket.Upsert(document);
             if (!upsert.Success)
             {
-                Console.WriteLine(String.Format("Failed to write json: {0}", json));
+                Console.WriteLine(String.Format("Failed to write object: {0}", obj.ToString()));
+                return "";
             }
+
+            return id;
         }
 
-        public void Read(string id)
+        public T Read<T>(string id) where T : ObjectSchema.IFromJson<T>, new()
         {
             var get = _bucket.GetDocument<dynamic>(id);
+            if (!get.Success)
+            {
+                Console.Write(String.Format("Failed to retrieve object: {0}", id));
+                return default(T);
+            }
+           
             var document = get.Document;
-
-            var msg = string.Format("{0}: {1}", document.Id, document.Content);
-            Console.WriteLine(msg);
+            T obj = new T();
+            obj.FromJson(document.Content, ref obj);
+            return obj;
         }
     }
 }
