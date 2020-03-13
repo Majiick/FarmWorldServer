@@ -9,12 +9,14 @@ namespace Server
 {
     class Database
     {
+        public readonly string ServerURI = "http://139.162.192.17";
         Couchbase.Core.IBucket _bucket;
+
         public Database()
         {
             var cluster = new Cluster(new ClientConfiguration
             {
-                Servers = new List<Uri> { new Uri("http://139.162.192.17") }
+                Servers = new List<Uri> { new Uri(ServerURI) }
             });
 
             var authenticator = new PasswordAuthenticator("Ecoste", "tidux2284da06");
@@ -54,7 +56,7 @@ namespace Server
             var upsert = _bucket.Upsert(document);
             if (!upsert.Success)
             {
-                Console.WriteLine(String.Format("Failed to write object: {0}", obj.ToString()));
+                Console.WriteLine(String.Format("Failed to write object: {0}", obj.ToString()));  // TODO: Throw exception.
                 return "";
             }
 
