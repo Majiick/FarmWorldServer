@@ -66,8 +66,7 @@ namespace Server
             var get = _bucket.GetDocument<dynamic>(id);
             if (!get.Success)
             {
-                Console.Write(String.Format("Failed to retrieve object: {0}", id));
-                return default(T);  // TODO: This should raise an Exception
+                throw new KeyNotFoundException(String.Format("Failed to retrieve document: {0}", id));
             }
            
             var document = get.Document;
