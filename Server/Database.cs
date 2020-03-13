@@ -120,7 +120,6 @@ namespace Server
                 obj.FromJson(IObject, ref obj);
                 obj.id = row.G;
                 ret.Add(obj);
-                Console.WriteLine(obj.ToString());
             }
 
             return ret;
