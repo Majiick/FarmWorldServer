@@ -117,7 +117,7 @@ namespace Packet
     // PlaceMinableObject is only for client.
     class PlaceMinableObject : ICopyAble<PlaceMinableObject>
     {
-        ObjectSchema.Mineable mineable { get; set; }
+        public ObjectSchema.Mineable mineable { get; set; }
 
     public PlaceMinableObject Copy()
     {

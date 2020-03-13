@@ -100,7 +100,13 @@ namespace Server
 
             Console.WriteLine("Player {0} logged in.", login.userName);
             _connectedPlayers[login.userName] = new Player(login.userName, peer);
-            // // _db.ReadAllObjects<ObjectSchema.Mineable>(ObjectSchema.ObjectTypes.IObjectType.MINEABLE);
+
+            // Send all mineable objects to player.
+            List< ObjectSchema.Mineable> allMinables = _db.ReadAllObjects<ObjectSchema.Mineable>(ObjectSchema.ObjectTypes.IObjectType.MINEABLE);
+            foreach (var mineable in allMinables)
+            {
+                peer.Send(this.Write(new Packet.PlaceMinableObject { mineable = mineable }), DeliveryMethod.ReliableUnordered);
+            }
         }
 
         public void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
