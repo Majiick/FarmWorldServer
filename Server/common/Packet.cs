@@ -56,6 +56,17 @@ namespace Packet
         }
     }
 
+    class MiningLockFailed : ObjectIdentifier, PlayerIdentifier, ICopyAble<MiningLockFailed>
+    {
+        public string id { get; set; }
+        public string userName { get; set; }
+
+        public MiningLockFailed Copy()
+        {
+            return (MiningLockFailed)this.MemberwiseClone();
+        }
+    }
+
     // EndMining is only for player.
     class EndMining : ObjectIdentifier, PlayerIdentifier, ICopyAble<EndMining>
     {

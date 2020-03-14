@@ -99,6 +99,7 @@ namespace Server
             if (!_db.Lock(sm.id, sm.userName)) // Lock object
             {
                 Console.WriteLine(String.Format("Player {0} failed to lock object {1}", sm.userName, sm.id));
+                peer.Send(this.Write(new Packet.MiningLockFailed { id = sm.id, userName = sm.userName}), DeliveryMethod.ReliableOrdered);
                 return;
             }
             SendToAllOtherPlayers(sm.userName, this.Write<Packet.StartMining>(sm.Copy())); // Send notification to all other players.
