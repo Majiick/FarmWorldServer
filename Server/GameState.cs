@@ -69,6 +69,16 @@ namespace Server
             }
         }
 
+        void SendToAllOtherPlayers(string excludedUsername, byte[] bytes)
+        {
+            Player p;
+            if(!_connectedPlayers.TryGetValue(excludedUsername, out p))
+            {
+                throw new ArgumentException(String.Format("SendToAllOtherPlayers tried to exclude userName {0} but it is not connected.", excludedUsername));
+            }
+            SendToAllOtherPlayers(p, bytes);
+        }
+
         void SendToAllPlayers(byte[] bytes)
         {
             foreach (Player player in _connectedPlayers.Values)
@@ -86,10 +96,20 @@ namespace Server
 
         void OnStartMiningPacketReceived(Packet.StartMining sm, NetPeer peer)
         {
-            // TODO: Lock object
-            // TODO: Send out notification to all other players.
+            if (!_db.Lock(sm.id, sm.userName)) // Lock object
+            {
+                Console.WriteLine(String.Format("Player {0} failed to lock object {1}", sm.userName, sm.id));
+                return;
+            }
+            SendToAllOtherPlayers(sm.userName, this.Write(sm)); // Send notification to all other players.
             AddDelayedEvent(
-                () => peer.Send(this.Write(new Packet.EndMining { id = sm.id }), DeliveryMethod.ReliableSequenced),
+                () => {
+                    SendToAllPlayers(this.Write(new Packet.EndMining { id = sm.id })); // Send finish mining notification to everyone including player.
+                    if (!_db.Unlock(sm.id))
+                    {
+                        throw new Exception(String.Format("Failed to unlock mining object id '{0}' started mining by '{1}', this should never happen. Did object get unlocked somewhere else?", sm.id, sm.userName));
+                    }
+                },
                 3 * Time.SECOND);
             
         }

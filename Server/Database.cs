@@ -36,6 +36,83 @@ namespace Server
             var upsert = _bucket.Upsert(document);
         }
 
+        public bool Lock(string id, string lockedBy)
+        {
+            var lockResult = _bucket.GetAndLock<dynamic>(id, 1);
+            if (!lockResult.Success)
+            {
+                if (lockResult.Status == Couchbase.IO.ResponseStatus.Locked)
+                {
+                    Console.WriteLine(String.Format("Object with id {0} already DB locked.", lockResult.Status.ToString()));
+                } else if (lockResult.Status == Couchbase.IO.ResponseStatus.KeyNotFound)
+                {
+                    Console.WriteLine(String.Format("Object with id {0} already locked.", lockResult.Status.ToString()));
+                } else
+                {
+                    throw new NotImplementedException(String.Format("Lock operation threw status {0} which is not handled on id {1}.", lockResult.Status, id));
+                }
+
+                return false;
+            }
+            Newtonsoft.Json.Linq.JObject obj = lockResult.Value;
+            if (obj.Value<bool>("locked") == true)
+            {
+                Console.WriteLine(String.Format("Object with id {0} is already locked by {1}.", id, obj.Value<string>("lockedBy")));
+                return false;
+            }
+
+            obj["locked"] = true;
+            obj["lockedBy"] = lockedBy;
+            obj["lockStartTime"] = DateTimeOffset.Now.ToUnixTimeSeconds();
+            IOperationResult  replaceResult = _bucket.Replace(id, obj, lockResult.Cas);  // This replaces the object and releases the DB lock.
+            if (!replaceResult.Success)
+            {
+                throw new Exception(String.Format("Lock on object id '{0}' did not work: {1}.", id, replaceResult.Status));
+            }
+
+            return true;
+        }
+
+        public bool Unlock(string id)
+        {
+            var lockResult = _bucket.GetAndLock<dynamic>(id, 1);
+            if (!lockResult.Success)
+            {
+                if (lockResult.Status == Couchbase.IO.ResponseStatus.Locked)
+                {
+                    Console.WriteLine(String.Format("Object with id {0} already DB locked.", lockResult.Status.ToString()));
+                }
+                else if (lockResult.Status == Couchbase.IO.ResponseStatus.KeyNotFound)
+                {
+                    Console.WriteLine(String.Format("Object with id {0} already locked.", lockResult.Status.ToString()));
+                }
+                else
+                {
+                    throw new NotImplementedException(String.Format("Lock operation threw status {0} which is not handled on id {1}.", lockResult.Status, id));
+                }
+
+                return false;
+            }
+            Newtonsoft.Json.Linq.JObject obj = lockResult.Value;
+            if (obj.Value<bool>("locked") == true)
+            {
+                Console.WriteLine(String.Format("Object with id {0} is already locked by {1}.", id, obj.Value<string>("lockedBy")));
+                return false;
+            }
+
+            obj["locked"] = false;
+            obj["lockedBy"] = "";
+            obj["lockStartTime"] = 0;
+            IOperationResult replaceResult = _bucket.Replace(id, obj, lockResult.Cas);  // This replaces the object and releases the DB lock.
+            if (!replaceResult.Success)
+            {
+                throw new Exception(String.Format("Unlock on object id '{0}' did not work: {1}.", id, replaceResult.Status));
+            }
+
+
+            return true;
+        }
+
         // Returns id of written object.
         public string Write(string baseId, ObjectSchema.IObject obj)  // TODO: Make async.
         {

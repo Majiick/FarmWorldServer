@@ -30,22 +30,34 @@ namespace ObjectSchema
         string type { get; set; }
     }
 
+    interface ILockable
+    {
+        bool locked { get; set; }
+        string lockedBy { get; set; }
+        long lockStartTime { get; set; }
+    }
+
     interface IMineable
     {
         string mineableType { get; set; }
         string size { get; set; }
     }
 
-    public struct Mineable : Packet.ITransform, IObject, IMineable, INetSerializable
+    public struct Mineable : Packet.ITransform, IObject, IMineable, ILockable, INetSerializable
 #if !UNITY_STANDALONE
         , IFromJson<Mineable>
 #endif
     {
+        //IObject
         public string id { get; set; }
         public string type { get; set; }
+
+        //Mineable
         public string mineableType { get; set; }
         public string subMineableType { get; set; }
         public string size { get; set; }
+
+        // Transform
         public float x { get; set; }
         public float y { get; set; }
         public float z { get; set; }
@@ -53,6 +65,11 @@ namespace ObjectSchema
         public float rot_y { get; set; }
         public float rot_z { get; set; }
         public float rot_w { get; set; }
+
+        // Lock
+        public bool locked { get; set; }
+        public string lockedBy { get; set; }
+        public long lockStartTime { get; set; }
 
         public void Deserialize(NetDataReader reader)
         {
@@ -69,6 +86,10 @@ namespace ObjectSchema
             rot_y = reader.GetFloat();
             rot_z = reader.GetFloat();
             rot_w = reader.GetFloat();
+
+            locked = reader.GetBool();
+            lockedBy = reader.GetString();
+            lockStartTime = reader.GetLong();
         }
 
         public void Serialize(NetDataWriter writer)
@@ -86,6 +107,10 @@ namespace ObjectSchema
             writer.Put(rot_y);
             writer.Put(rot_z);
             writer.Put(rot_w);
+
+            writer.Put(locked);
+            writer.Put(lockedBy);
+            writer.Put(lockStartTime);
         }
 
 #if !UNITY_STANDALONE
