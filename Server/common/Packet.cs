@@ -45,26 +45,26 @@ namespace Packet
     }
 
     // StartMining is for both server and player.
-    class StartMining : ObjectIdentifier, PlayerIdentifier, ICopyAble<DestroyObject>
+    class StartMining : ObjectIdentifier, PlayerIdentifier, ICopyAble<StartMining>
     {
         public string id { get; set; }
         public string userName { get; set; }
 
-        public DestroyObject Copy()
+        public StartMining Copy()
         {
-            return (DestroyObject)this.MemberwiseClone();
+            return (StartMining)this.MemberwiseClone();
         }
     }
 
     // EndMining is only for player.
-    class EndMining : ObjectIdentifier, PlayerIdentifier, ICopyAble<DestroyObject>
+    class EndMining : ObjectIdentifier, PlayerIdentifier, ICopyAble<EndMining>
     {
         public string id { get; set; }  // id of mineable object.
         public string userName { get; set; }  // userName of player who was mining.
 
-        public DestroyObject Copy()
+        public EndMining Copy()
         {
-            return (DestroyObject)this.MemberwiseClone();
+            return (EndMining)this.MemberwiseClone();
         }
     }
 

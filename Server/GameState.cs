@@ -89,7 +89,7 @@ namespace Server
 
         void OnPlaceMinableObjectPacketReceived(Packet.Developer.DeveloperPlaceMinableObject obj, NetPeer peer)
         {
-            var id = _db.Write(ObjectSchema.ObjectTypes.MineableBaseID, obj.mineable);
+            var id = _db.Write(obj.mineable);
             ObjectSchema.Mineable m = _db.Read<ObjectSchema.Mineable>(id);
             SendToAllPlayers(this.Write(new Packet.PlaceMinableObject { mineable = m }));
         }
@@ -101,10 +101,10 @@ namespace Server
                 Console.WriteLine(String.Format("Player {0} failed to lock object {1}", sm.userName, sm.id));
                 return;
             }
-            SendToAllOtherPlayers(sm.userName, this.Write(sm)); // Send notification to all other players.
+            SendToAllOtherPlayers(sm.userName, this.Write<Packet.StartMining>(sm.Copy())); // Send notification to all other players.
             AddDelayedEvent(
                 () => {
-                    SendToAllPlayers(this.Write(new Packet.EndMining { id = sm.id })); // Send finish mining notification to everyone including player.
+                    SendToAllPlayers(this.Write(new Packet.EndMining { id = sm.id, userName = sm.userName })); // Send finish mining notification to everyone including player.
                     if (!_db.Unlock(sm.id))
                     {
                         throw new Exception(String.Format("Failed to unlock mining object id '{0}' started mining by '{1}', this should never happen. Did object get unlocked somewhere else?", sm.id, sm.userName));

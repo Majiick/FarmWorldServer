@@ -15,6 +15,11 @@ namespace ObjectSchema
         * Big Warning: Any changes to this file should be really carefully made. All Serialize/Deserialize have to be updated
         *              so that the Packets are coded/decoded correctly but also so that the database is forward compatible.
         * Another Warning: LiteNetLib only supports nested types that are only 1 level deep. Code: https://github.com/RevenantX/LiteNetLib/blob/master/LiteNetLib/Utils/NetSerializer.cs#L83
+        * 
+        * To add another struct to this file:
+        *   1. Make the struct, make sure IFromJson and IObject is interfaced correctly (check type template).
+        *   2. Make sure to update Deserialize and Deserialize.
+        *   3. Make sure to update ConstructObject.
     */
 #if !UNITY_STANDALONE
     interface IFromJson<T>
@@ -166,7 +171,22 @@ namespace ObjectSchema
             public static IMineableSize LARGE { get { return new IMineableSize("LARGE"); } }
         }
 
-        //Mineable
-        public static readonly string MineableBaseID = "MINEABLE";
+
+        // Helpers
+        // Constructs the correct object from json and sets the id.
+        public static IObject ConstructObject(string id, Newtonsoft.Json.Linq.JObject json)
+        {
+            string iObjectType = json.Value<string>("type");
+            if (iObjectType == IObjectType.MINEABLE.Value)
+            {
+                Mineable m = new Mineable();
+                m.FromJson(json, ref m);
+                m.id = id;
+                return m;
+            } else
+            {
+                throw new ArgumentException(String.Format("Object of type {0} cannot be decoded id '{1}'.", iObjectType, id));
+            }
+        }
     }
 }

@@ -36,6 +36,39 @@ namespace Server
             var upsert = _bucket.Upsert(document);
         }
 
+        public List<ObjectSchema.IObject> GetAllLockedObjects()
+        {
+            var queryRequest = new QueryRequest()
+                .Statement("SELECT meta(`FarmWorld`).id, * FROM `FarmWorld` WHERE locked=true");
+            var result = _bucket.Query<dynamic>(queryRequest);
+            if (!result.Success)
+            {
+                throw new Exception(String.Format("Getting all locked objects failed: {0}", result.Status));
+            }
+
+            List<ObjectSchema.IObject> ret = new List<ObjectSchema.IObject>(result.Rows.Count);
+            foreach (var row in result.Rows)
+            {
+                Newtonsoft.Json.Linq.JObject IObjectJson = row.GetValue("FarmWorld");
+                string id = row.GetValue("id");
+
+                ret.Add(ObjectSchema.ObjectTypes.ConstructObject(id, IObjectJson));
+            }
+
+            return ret;
+        }
+
+        public void UnlockAllObjects()
+        {
+            var queryRequest = new QueryRequest()
+                .Statement("UPDATE `FarmWorld` SET locked=false WHERE locked=true");
+            var result = _bucket.Query<dynamic>(queryRequest);
+            if (!result.Success)
+            {
+                throw new Exception(String.Format("Unlocking all objects failed: {0}", result.Status));
+            }
+        }
+
         public bool Lock(string id, string lockedBy)
         {
             var lockResult = _bucket.GetAndLock<dynamic>(id, 1);
@@ -58,7 +91,11 @@ namespace Server
             if (obj.Value<bool>("locked") == true)
             {
                 Console.WriteLine(String.Format("Object with id {0} is already locked by {1}.", id, obj.Value<string>("lockedBy")));
-                _bucket.Unlock(id, lockResult.Cas);
+                IOperationResult unlockResult = _bucket.Unlock(id, lockResult.Cas);
+                if (!unlockResult.Success)
+                {
+                    throw new Exception("unlockResult here should always be a success.");
+                }
                 return false;
             }
 
@@ -95,9 +132,9 @@ namespace Server
                 return false;
             }
             Newtonsoft.Json.Linq.JObject obj = lockResult.Value;
-            if (obj.Value<bool>("locked") == true)
+            if (obj.Value<bool>("locked") == false)
             {
-                Console.WriteLine(String.Format("Object with id {0} is already locked by {1}.", id, obj.Value<string>("lockedBy")));
+                Console.WriteLine(String.Format("Object with id {0} was not locked.", id, obj.Value<string>("lockedBy")));
                 return false;
             }
 
@@ -115,16 +152,16 @@ namespace Server
         }
 
         // Returns id of written object.
-        public string Write(string baseId, ObjectSchema.IObject obj)  // TODO: Make async.
+        public string Write(ObjectSchema.IObject obj)  // TODO: Make async.
         {
-            var idResult = _bucket.Increment(baseId);
+            var idResult = _bucket.Increment("InGameObjectCounter");
             if (!idResult.Success)
             {
-                Console.WriteLine(String.Format("Failed to get next increment for baseId {0}.", baseId));
+                Console.WriteLine("Failed to get next increment for baseId.");
                 return "";
             }
 
-            string id = baseId + idResult.Value.ToString();
+            string id = idResult.Value.ToString();
 
             var document = new Document<dynamic>
             {

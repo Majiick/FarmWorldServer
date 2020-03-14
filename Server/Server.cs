@@ -71,9 +71,20 @@ namespace Server
         NetManager _server;
         Database _db;
 
-        public void BlockingStart()
+        void SetupDB()
         {
             _db = new Database();
+            List<ObjectSchema.IObject> lockedObjects = _db.GetAllLockedObjects();
+            foreach (var obj in lockedObjects)
+            {
+                Console.WriteLine(String.Format("Object '{0}' '{1}' was locked on startup.", obj.id, obj.type));
+            }
+            _db.UnlockAllObjects();
+        }
+
+        public void BlockingStart()
+        {
+            SetupDB();
             GameState gameState = new GameState(_db);
             Listener listener = new Listener();
             _server = new NetManager(listener);
