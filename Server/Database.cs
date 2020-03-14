@@ -58,13 +58,14 @@ namespace Server
             if (obj.Value<bool>("locked") == true)
             {
                 Console.WriteLine(String.Format("Object with id {0} is already locked by {1}.", id, obj.Value<string>("lockedBy")));
+                _bucket.Unlock(id, lockResult.Cas);
                 return false;
             }
 
             obj["locked"] = true;
             obj["lockedBy"] = lockedBy;
             obj["lockStartTime"] = DateTimeOffset.Now.ToUnixTimeSeconds();
-            IOperationResult  replaceResult = _bucket.Replace(id, obj, lockResult.Cas);  // This replaces the object and releases the DB lock.
+            IOperationResult replaceResult = _bucket.Replace(id, obj, lockResult.Cas);  // This replaces the object and releases the DB lock.
             if (!replaceResult.Success)
             {
                 throw new Exception(String.Format("Lock on object id '{0}' did not work: {1}.", id, replaceResult.Status));
