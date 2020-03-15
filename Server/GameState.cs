@@ -96,19 +96,20 @@ namespace Server
 
         void OnStartMiningPacketReceived(Packet.StartMining sm, NetPeer peer)
         {
-            if (!_db.Lock(sm.id, sm.userName)) // Lock object
+            Packet.StartMining smCopy = sm.Copy();
+            if (!_db.Lock(smCopy.id, smCopy.userName)) // Lock object
             {
-                Console.WriteLine(String.Format("Player {0} failed to lock object {1}", sm.userName, sm.id));
-                peer.Send(this.Write(new Packet.MiningLockFailed { id = sm.id, userName = sm.userName}), DeliveryMethod.ReliableOrdered);
+                Console.WriteLine(String.Format("Player {0} failed to lock object {1}", smCopy.userName, smCopy.id));
+                peer.Send(this.Write(new Packet.MiningLockFailed { id = smCopy.id, userName = smCopy.userName}), DeliveryMethod.ReliableOrdered);
                 return;
             }
-            SendToAllOtherPlayers(sm.userName, this.Write<Packet.StartMining>(sm.Copy())); // Send notification to all other players.
+            SendToAllOtherPlayers(smCopy.userName, this.Write<Packet.StartMining>(smCopy.Copy())); // Send notification to all other players.
             AddDelayedEvent(
                 () => {
-                    SendToAllPlayers(this.Write(new Packet.EndMining { id = sm.id, userName = sm.userName })); // Send finish mining notification to everyone including player.
-                    if (!_db.Unlock(sm.id))
+                    SendToAllPlayers(this.Write(new Packet.EndMining { id = smCopy.id, userName = smCopy.userName })); // Send finish mining notification to everyone including player.
+                    if (!_db.Unlock(smCopy.id))
                     {
-                        throw new Exception(String.Format("Failed to unlock mining object id '{0}' started mining by '{1}', this should never happen. Did object get unlocked somewhere else?", sm.id, sm.userName));
+                        throw new Exception(String.Format("Failed to unlock mining object id '{0}' started mining by '{1}', this should never happen. Did object get unlocked somewhere else?", smCopy.id, smCopy.userName));
                     }
                 },
                 3 * Time.SECOND);

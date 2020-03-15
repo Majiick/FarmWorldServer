@@ -174,6 +174,7 @@ namespace ObjectSchema
 
         // Helpers
         // Constructs the correct object from json and sets the id.
+#if !UNITY_STANDALONE
         public static IObject ConstructObject(string id, Newtonsoft.Json.Linq.JObject json)
         {
             string iObjectType = json.Value<string>("type");
@@ -183,10 +184,12 @@ namespace ObjectSchema
                 m.FromJson(json, ref m);
                 m.id = id;
                 return m;
-            } else
+            }
+            else
             {
                 throw new ArgumentException(String.Format("Object of type {0} cannot be decoded id '{1}'.", iObjectType, id));
             }
         }
+#endif
     }
 }
