@@ -110,7 +110,7 @@ namespace Server
             SendToAllOtherPlayers(smCopy.userName, this.Write<Packet.StartMining>(smCopy.Copy())); // Send notification to all other players.
             AddDelayedEvent(
                 () => {
-                    if (p.IsMining(smCopy.id))
+                    if (p.IsMining(smCopy.id)) // Player could have aborted.
                     {
                         p.EndMining();
                         SendToAllPlayers(this.Write(new Packet.EndMining { id = smCopy.id, userName = smCopy.userName })); // Send finish mining notification to everyone including player.
