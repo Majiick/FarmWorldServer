@@ -11,7 +11,7 @@ namespace Server
 {
     class GameState : NetPacketProcessor
     {
-        Dictionary<string, Player> _connectedPlayers = new Dictionary<string, Player>();
+        Dictionary<string, PlayerState> _connectedPlayers = new Dictionary<string, PlayerState>();
         List<DelayedEvent> _delayedEvents = new List<DelayedEvent>();
         public long TickStartTime { get; set; }  // Gets set by the Server at the start of the tick.
         Database _db;
@@ -25,12 +25,13 @@ namespace Server
             SubscribeReusable<Packet.PlayerTransform, LiteNetLib.NetPeer>(OnPlayerTransformReceived);
             SubscribeReusable<Packet.Login, LiteNetLib.NetPeer>(OnLoginReceived);
             SubscribeReusable<Packet.StartMining, LiteNetLib.NetPeer>(OnStartMiningPacketReceived);
+            SubscribeReusable<Packet.AbortMining, LiteNetLib.NetPeer>(OnAbortMiningPacketReceived);
             SubscribeReusable<Packet.Developer.DeveloperPlaceMinableObject, LiteNetLib.NetPeer>(OnPlaceMinableObjectPacketReceived);
         }
 
         public void Tick()
         {
-            foreach (Player player in _connectedPlayers.Values)
+            foreach (PlayerState player in _connectedPlayers.Values)
             {
                 SendToAllOtherPlayers(player, this.Write(player.lastTransform));
             }
@@ -60,9 +61,9 @@ namespace Server
             _delayedEvents = notExecuted;  // Filter out all of the executed events.
         }
 
-        void SendToAllOtherPlayers(Player excluded, byte[] bytes)
+        void SendToAllOtherPlayers(PlayerState excluded, byte[] bytes)
         {
-            foreach (Player player in _connectedPlayers.Values)
+            foreach (PlayerState player in _connectedPlayers.Values)
             {
                 if (player == excluded) continue;
                 player._netPeer.Send(bytes, DeliveryMethod.ReliableSequenced);
@@ -71,7 +72,7 @@ namespace Server
 
         void SendToAllOtherPlayers(string excludedUsername, byte[] bytes)
         {
-            Player p;
+            PlayerState p;
             if(!_connectedPlayers.TryGetValue(excludedUsername, out p))
             {
                 throw new ArgumentException(String.Format("SendToAllOtherPlayers tried to exclude userName {0} but it is not connected.", excludedUsername));
@@ -81,7 +82,7 @@ namespace Server
 
         void SendToAllPlayers(byte[] bytes)
         {
-            foreach (Player player in _connectedPlayers.Values)
+            foreach (PlayerState player in _connectedPlayers.Values)
             {
                 player._netPeer.Send(bytes, DeliveryMethod.ReliableSequenced);
             }
@@ -103,17 +104,37 @@ namespace Server
                 peer.Send(this.Write(new Packet.MiningLockFailed { id = smCopy.id, userName = smCopy.userName}), DeliveryMethod.ReliableOrdered);
                 return;
             }
+
+            var p = _connectedPlayers[smCopy.userName];
+            p.StartMining(smCopy.id);
             SendToAllOtherPlayers(smCopy.userName, this.Write<Packet.StartMining>(smCopy.Copy())); // Send notification to all other players.
             AddDelayedEvent(
                 () => {
-                    SendToAllPlayers(this.Write(new Packet.EndMining { id = smCopy.id, userName = smCopy.userName })); // Send finish mining notification to everyone including player.
-                    if (!_db.Unlock(smCopy.id))
+                    if (p.IsMining(smCopy.id))
                     {
-                        throw new Exception(String.Format("Failed to unlock mining object id '{0}' started mining by '{1}', this should never happen. Did object get unlocked somewhere else?", smCopy.id, smCopy.userName));
+                        p.EndMining();
+                        SendToAllPlayers(this.Write(new Packet.EndMining { id = smCopy.id, userName = smCopy.userName })); // Send finish mining notification to everyone including player.
+                        if (!_db.Unlock(smCopy.id))
+                        {
+                            throw new Exception(String.Format("Failed to unlock mining object id '{0}' started mining by '{1}', this should never happen. Did object get unlocked somewhere else?", smCopy.id, smCopy.userName));
+                        }
                     }
                 },
                 3 * Time.SECOND);
-            
+        }
+
+        public void OnAbortMiningPacketReceived(Packet.AbortMining am, NetPeer peer) 
+        {
+            var amCopy = am.Copy();
+            var p = _connectedPlayers[amCopy.userName];
+            if (!p.IsMining(amCopy.id))
+            {
+                Console.WriteLine(String.Format("Abort packet was issued from {0} to abort mining {1} but the server state says the player is not mining that mineable.", amCopy.userName, amCopy.id));
+                return;
+            }
+
+            p.AbortMining();
+            SendToAllOtherPlayers(p, this.Write<Packet.AbortMining>(amCopy));
         }
 
         void OnPlayerTransformReceived(Packet.PlayerTransform transform, NetPeer peer)
@@ -130,7 +151,7 @@ namespace Server
             }
 
             Console.WriteLine("Player {0} logged in.", login.userName);
-            _connectedPlayers[login.userName] = new Player(login.userName, peer);
+            _connectedPlayers[login.userName] = new PlayerState(login.userName, peer);
 
             // Send all mineable objects to player.
             List< ObjectSchema.Mineable> allMinables = _db.ReadAllObjects<ObjectSchema.Mineable>(ObjectSchema.ObjectTypes.IObjectType.MINEABLE);
@@ -142,7 +163,7 @@ namespace Server
 
         public void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
         {
-            Player p;
+            PlayerState p;
             try
             {
                 p = _connectedPlayers.Values.Single(p => p._netPeer == peer);

@@ -67,6 +67,20 @@ namespace Packet
         }
     }
 
+    // Abort minind is for server and player.
+    // Abort mining is sent to server when a player interrupts mining.
+    // It is also relayed from server to clients.
+    class AbortMining : ObjectIdentifier, PlayerIdentifier, ICopyAble<AbortMining> 
+    {
+        public string id { get; set; }  // id of mineable object.
+        public string userName { get; set; }  // userName of player who was mining.
+
+        public AbortMining Copy()
+        {
+            return (AbortMining)this.MemberwiseClone();
+        }
+    }
+
     // EndMining is only for player.
     class EndMining : ObjectIdentifier, PlayerIdentifier, ICopyAble<EndMining>
     {
