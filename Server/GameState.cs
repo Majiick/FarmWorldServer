@@ -44,21 +44,30 @@ namespace Server
             _delayedEvents.Add(new DelayedEvent(action, executeAt: TickStartTime + executionDelay));
         }
 
+        void AddDelayedEvent(DelayedEvent e, long executionDelay)
+        {
+            e.ExecuteAt = TickStartTime + executionDelay;
+            _delayedEvents.Add(e);
+        }
+
         void ExecuteDelayedEvents()
         {
             List<DelayedEvent> notExecuted = new List<DelayedEvent>(_delayedEvents.Count);
             foreach (DelayedEvent e in _delayedEvents)
             {
-                if (TickStartTime >= e.ExecuteAt)
+                if (TickStartTime >= e.ExecuteAt && !e.Cancelled)
                 {
                     e.Action();
                 } else
                 {
-                    notExecuted.Add(e);
+                    if (!e.Cancelled)
+                    {
+                        notExecuted.Add(e);
+                    }
                 }
             }
 
-            _delayedEvents = notExecuted;  // Filter out all of the executed events.
+            _delayedEvents = notExecuted;  // Filter out all of the executed events and cancelled events.
         }
 
         void SendToAllOtherPlayers(PlayerState excluded, byte[] bytes)
@@ -98,6 +107,17 @@ namespace Server
         void OnStartMiningPacketReceived(Packet.StartMining sm, NetPeer peer)
         {
             Packet.StartMining smCopy = sm.Copy();
+            var p = _connectedPlayers[smCopy.userName];
+            if (p.IsMining())
+            {
+                Console.WriteLine(
+                    String.Format("Player {0} sent StartMining but was already mining {1}. Resetting player state.",
+                                  smCopy.userName, p.miningState.miningId));
+                _db.Unlock(p.miningState.miningId);
+                p.miningState.miningEndEventRef.Cancelled = true;
+                p.ResetState();
+            }
+
             if (!_db.Lock(smCopy.id, smCopy.userName)) // Lock object
             {
                 Console.WriteLine(String.Format("Player {0} failed to lock object {1}", smCopy.userName, smCopy.id));
@@ -105,22 +125,24 @@ namespace Server
                 return;
             }
 
-            var p = _connectedPlayers[smCopy.userName];
-            p.StartMining(smCopy.id);
+            DelayedEvent finishMiningEvent = new DelayedEvent(() =>  // This delayed event is cancelled if AbortMining is called.
+            {
+                if (!p.IsMining(smCopy.id))
+                {
+                    Console.WriteLine(String.Format("Player {0}, mineable {1} finishMiningEvent was executed but the player was not mining. " +
+                        "This should not happen as the event should have been cancelled.", smCopy.userName, smCopy.id));
+                    return;
+                }
+                p.EndMining(smCopy.id);
+                SendToAllPlayers(this.Write(new Packet.EndMining { id = smCopy.id, userName = smCopy.userName })); // Send finish mining notification to everyone including player.
+                if (!_db.Unlock(smCopy.id))
+                {
+                    throw new Exception(String.Format("Failed to unlock mining object id '{0}' started mining by '{1}', this should never happen. Did object get unlocked somewhere else?", smCopy.id, smCopy.userName));
+                }
+            });
+            p.StartMining(smCopy.id, finishMiningEvent);
             SendToAllOtherPlayers(smCopy.userName, this.Write<Packet.StartMining>(smCopy.Copy())); // Send notification to all other players.
-            AddDelayedEvent(
-                () => {
-                    if (p.IsMining(smCopy.id)) // Player could have aborted.
-                    {
-                        p.EndMining();
-                        SendToAllPlayers(this.Write(new Packet.EndMining { id = smCopy.id, userName = smCopy.userName })); // Send finish mining notification to everyone including player.
-                        if (!_db.Unlock(smCopy.id))
-                        {
-                            throw new Exception(String.Format("Failed to unlock mining object id '{0}' started mining by '{1}', this should never happen. Did object get unlocked somewhere else?", smCopy.id, smCopy.userName));
-                        }
-                    }
-                },
-                3 * Time.SECOND);
+            AddDelayedEvent(finishMiningEvent, 3 * Time.SECOND);
         }
 
         public void OnAbortMiningPacketReceived(Packet.AbortMining am, NetPeer peer) 
@@ -133,7 +155,10 @@ namespace Server
                 return;
             }
 
-            p.AbortMining();
+            _db.Unlock(am.id);
+            p.miningState.miningEndEventRef.Cancelled = true;
+            p.AbortMining(amCopy.id);
+            SendToAllPlayers(this.Write<Packet.AbortMining>(amCopy));
             SendToAllOtherPlayers(p, this.Write<Packet.AbortMining>(amCopy));
         }
 
