@@ -90,6 +90,7 @@ namespace Server
             _server = new NetManager(listener);
             listener.Setup(gameState);
             _server.Start(port);
+            Console.WriteLine("Server started.");
 
             Stopwatch _precisionTime = new Stopwatch();
             _precisionTime.Start();

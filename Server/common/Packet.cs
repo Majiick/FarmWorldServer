@@ -33,6 +33,17 @@ namespace Packet
         float rot_w { get; set; }
     }
 
+    // UserInventory is only for Player.
+    class UserInventory : ICopyAble<UserInventory>
+    {
+        public ItemSchema.ItemDBSchema[] items { get; set; }
+
+        public UserInventory Copy()
+        {
+            return (UserInventory)this.MemberwiseClone();
+        }
+    }
+
     // DestroyObject is only for client.
     class DestroyObject : ObjectIdentifier, ICopyAble<DestroyObject>
     {
@@ -56,6 +67,7 @@ namespace Packet
         }
     }
 
+    // MiningLockFailed is only for Player.
     class MiningLockFailed : ObjectIdentifier, PlayerIdentifier, ICopyAble<MiningLockFailed>
     {
         public string id { get; set; }

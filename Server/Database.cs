@@ -15,6 +15,7 @@ namespace Server
 
         public Database()
         {
+            Console.WriteLine("Connecting to database.");
             var cluster = new Cluster(new ClientConfiguration
             {
                 Servers = new List<Uri> { new Uri(ServerURI) }
@@ -94,8 +95,7 @@ namespace Server
                     }
                 }
 
-                row = lockResult.Value;
-                Newtonsoft.Json.Linq.JObject obj = row.GetValue("FarmWorld");
+                Newtonsoft.Json.Linq.JObject obj = lockResult.Value;
                 obj["quantity"] = item.quantity + obj.Value<int>("quantity");
 
                 IOperationResult replaceResult = _bucket.Replace(id, obj, lockResult.Cas);  // This replaces the object and releases the DB lock.
@@ -106,8 +106,38 @@ namespace Server
             }
         }
 
+        public List<ItemSchema.ItemDBSchema> GetUserInventory(string userName)
+        {
+            var queryRequest = new QueryRequest()
+                .Statement("SELECT meta(`FarmWorld`).id, * FROM FarmWorld WHERE userName=$1 AND uniqueName IS NOT MISSING;")
+                .AddPositionalParameter(userName);
+            var result = _bucket.Query<dynamic>(queryRequest);
+            if (!result.Success)
+            {
+                Console.WriteLine(String.Format("Getting items for user {0} failed with error {1}.", userName, result.Errors));
+                return null;
+            }
+
+            List<ItemSchema.ItemDBSchema> ret = new List<ItemSchema.ItemDBSchema>(result.Rows.Count);
+            foreach (var row in result.Rows)
+            {
+                Newtonsoft.Json.Linq.JObject itemJson = row.GetValue("FarmWorld");
+                string id = row.GetValue("id");
+
+                ItemSchema.ItemDBSchema item = new ItemSchema.ItemDBSchema();
+                item.id = id;
+                item.quantity = itemJson.Value<int>("quantity");
+                item.uniqueName = itemJson.Value<string>("uniqueName");
+                item.userName = itemJson.Value<string>("userName");
+                ret.Add(item);
+            }
+
+            return ret;
+        }
+
         public List<ObjectSchema.IObject> GetAllLockedObjects()
         {
+            Console.WriteLine("Getting all locked objects.");
             var queryRequest = new QueryRequest()
                 .Statement("SELECT meta(`FarmWorld`).id, * FROM `FarmWorld` WHERE locked=true");
             var result = _bucket.Query<dynamic>(queryRequest);
@@ -130,6 +160,7 @@ namespace Server
 
         public void UnlockAllObjects()
         {
+            Console.WriteLine("Unlocking all objects");
             var queryRequest = new QueryRequest()
                 .Statement("UPDATE `FarmWorld` SET locked=false WHERE locked=true");
             var result = _bucket.Query<dynamic>(queryRequest);

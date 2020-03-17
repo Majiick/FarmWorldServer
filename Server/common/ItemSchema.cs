@@ -1,4 +1,5 @@
-﻿using System;
+﻿using LiteNetLib.Utils;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -10,12 +11,28 @@ namespace ItemSchema
         string description { get; set; }
     }
 
-    public struct ItemDBSchema  // How the object looks like in the database.
+    public struct ItemDBSchema : INetSerializable  // How the object looks like in the database.
     {
         public string id { get; set; }
         public string uniqueName { get; set; }
         public string userName { get; set; }
         public int quantity { get; set; }
+
+        public void Deserialize(NetDataReader reader)
+        {
+            id = reader.GetString();
+            uniqueName = reader.GetString();
+            userName = reader.GetString();
+            quantity = reader.GetInt();
+        }
+
+        public void Serialize(NetDataWriter writer)
+        {
+            writer.Put(id);
+            writer.Put(uniqueName);
+            writer.Put(userName);
+            writer.Put(quantity);
+        }
     }
 
     public class Ore : IItem
@@ -51,7 +68,7 @@ namespace ItemSchema
         }
         private ItemSchema() { }
 
-        public IItem GetItem(string uniqueName)
+        public static IItem GetItem(string uniqueName)
         {
             return itemMap[uniqueName];
         }

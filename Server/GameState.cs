@@ -21,6 +21,7 @@ namespace Server
             _db = db;
 
             RegisterNestedType<ObjectSchema.Mineable>();
+            RegisterNestedType<ItemSchema.ItemDBSchema>();
 
             SubscribeReusable<Packet.PlayerTransform, LiteNetLib.NetPeer>(OnPlayerTransformReceived);
             SubscribeReusable<Packet.Login, LiteNetLib.NetPeer>(OnLoginReceived);
@@ -97,6 +98,18 @@ namespace Server
             }
         }
 
+        void SendInventoryToPlayer(PlayerState p)
+        {
+            List<ItemSchema.ItemDBSchema> inventory = _db.GetUserInventory(p._userName);
+            Packet.UserInventory packet = new Packet.UserInventory();
+            foreach (ItemSchema.ItemDBSchema item in inventory)
+            {
+                packet.items.Append(item);
+            }
+
+            p._netPeer.Send(this.Write(packet), DeliveryMethod.ReliableOrdered);
+        }
+
         void OnPlaceMinableObjectPacketReceived(Packet.Developer.DeveloperPlaceMinableObject obj, NetPeer peer)
         {
             var id = _db.Write(obj.mineable);
@@ -135,7 +148,16 @@ namespace Server
                 }
                 p.EndMining(smCopy.id);
                 SendToAllPlayers(this.Write(new Packet.EndMining { id = smCopy.id, userName = smCopy.userName })); // Send finish mining notification to everyone including player.
-                if (!_db.Unlock(smCopy.id))
+
+                // Add ore to user inventory
+                var item = new ItemSchema.ItemDBSchema();
+                item.uniqueName = ItemSchema.ItemNames.Ore.Value;
+                item.userName = p._userName;
+                item.quantity = 1;
+                _db.AddToUserInventory(item);
+
+                SendInventoryToPlayer(p); // Send inventory to player.
+                if (!_db.Unlock(smCopy.id)) // Unlock object in database.
                 {
                     throw new Exception(String.Format("Failed to unlock mining object id '{0}' started mining by '{1}', this should never happen. Did object get unlocked somewhere else?", smCopy.id, smCopy.userName));
                 }
@@ -177,6 +199,9 @@ namespace Server
 
             Console.WriteLine("Player {0} logged in.", login.userName);
             _connectedPlayers[login.userName] = new PlayerState(login.userName, peer);
+
+            // Send player's inventory to them.
+            SendInventoryToPlayer(_connectedPlayers[login.userName]);
 
             // Send all mineable objects to player.
             List< ObjectSchema.Mineable> allMinables = _db.ReadAllObjects<ObjectSchema.Mineable>(ObjectSchema.ObjectTypes.IObjectType.MINEABLE);
