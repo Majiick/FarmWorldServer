@@ -36,6 +36,76 @@ namespace Server
             var upsert = _bucket.Upsert(document);
         }
 
+        public void AddToUserInventory(ItemSchema.ItemDBSchema item)
+        {
+            var queryRequest = new QueryRequest()
+                .Statement("SELECT meta(`FarmWorld`).id, * FROM `FarmWorld` WHERE userName=$1 AND uniqueName=$2")
+                .AddPositionalParameter(item.userName)
+                .AddPositionalParameter(item.uniqueName);
+            var result = _bucket.Query<dynamic>(queryRequest);
+            if (!result.Success)
+            {
+                throw new Exception(String.Format("AddToUserInventory initial queryRequest failed: {0}", result.Status));
+            }
+            if (result.Rows.Count > 1)
+            {
+                throw new Exception(String.Format("AddToUserInventory initial query returned more than 1 row for uuesr {0} item {1}", item.userName, item.uniqueName));
+            }
+
+            if (result.Rows.Count == 0)  // TODO: Potential race here if 2 items are added at same time on an item that did not exist before.
+            {
+                var idResult = _bucket.Increment("UserItemInventoryCounter");
+                if (!idResult.Success)
+                {
+                    Console.WriteLine("Failed to get next increment for UserItemInventoryCounter.");
+                    return;
+                }
+
+                var document = new Document<dynamic>
+                {
+                    Id = "item" + idResult.Value.ToString(),
+                    Content = item
+                };
+                var upsert = _bucket.Upsert(document);
+                if (!upsert.Success)
+                {
+                    throw new Exception(String.Format("Upserting item failed for user {0} and item {1} and quantity {2}", item.userName, item.uniqueName, item.quantity));
+                }
+            }
+            else
+            {
+                var row = result.Rows[0];
+                string id = row.GetValue("id");
+
+                var lockResult = _bucket.GetAndLock<dynamic>(id, 1); // TODO: Implement wait and retry.
+                if (!lockResult.Success)
+                {
+                    if (lockResult.Status == Couchbase.IO.ResponseStatus.Locked)
+                    {
+                        Console.WriteLine(String.Format("Item with id {0} already DB locked for user {1}.", id, item.userName));
+                    }
+                    else if (lockResult.Status == Couchbase.IO.ResponseStatus.KeyNotFound)
+                    {
+                        throw new Exception(String.Format("Locking item failed for user {0} and item {1} and quantity {2}", item.userName, item.uniqueName, item.quantity));
+                    }
+                    else
+                    {
+                        throw new NotImplementedException(String.Format("Lock operation threw status {0} which is not handled on id {1}.", lockResult.Status, id));
+                    }
+                }
+
+                row = lockResult.Value;
+                Newtonsoft.Json.Linq.JObject obj = row.GetValue("FarmWorld");
+                obj["quantity"] = item.quantity + obj.Value<int>("quantity");
+
+                IOperationResult replaceResult = _bucket.Replace(id, obj, lockResult.Cas);  // This replaces the object and releases the DB lock.
+                if (!replaceResult.Success)
+                {
+                    throw new Exception(String.Format("Replace on item id '{0}' did not work: {1}.", id, replaceResult.Status));
+                }
+            }
+        }
+
         public List<ObjectSchema.IObject> GetAllLockedObjects()
         {
             var queryRequest = new QueryRequest()
@@ -157,7 +227,7 @@ namespace Server
             var idResult = _bucket.Increment("InGameObjectCounter");
             if (!idResult.Success)
             {
-                Console.WriteLine("Failed to get next increment for baseId.");
+                Console.WriteLine("Failed to get next increment for InGameObjectCounter.");
                 return "";
             }
 

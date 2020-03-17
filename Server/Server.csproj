@@ -8,6 +8,7 @@
   <ItemGroup>
     <PackageReference Include="CouchbaseNetClient" Version="2.7.16" />
     <PackageReference Include="LiteNetLib" Version="0.8.3.1" />
+    <PackageReference Include="Stateless" Version="5.0.0" />
   </ItemGroup>
 
 </Project>
