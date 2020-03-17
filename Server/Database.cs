@@ -110,7 +110,8 @@ namespace Server
         {
             var queryRequest = new QueryRequest()
                 .Statement("SELECT meta(`FarmWorld`).id, * FROM FarmWorld WHERE userName=$1 AND uniqueName IS NOT MISSING;")
-                .AddPositionalParameter(userName);
+                .AddPositionalParameter(userName)
+                .ScanConsistency(ScanConsistency.RequestPlus);
             var result = _bucket.Query<dynamic>(queryRequest);
             if (!result.Success)
             {

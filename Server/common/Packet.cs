@@ -42,6 +42,16 @@ namespace Packet
         {
             return (UserInventory)this.MemberwiseClone();
         }
+        public override string ToString()
+        {
+            string str = "";
+            foreach (var i in items)
+            {
+                str += i.uniqueName + " " + i.quantity.ToString() + "\n";
+            }
+
+            return str;
+        }
     }
 
     // DestroyObject is only for client.

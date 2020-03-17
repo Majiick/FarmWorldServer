@@ -102,11 +102,7 @@ namespace Server
         {
             List<ItemSchema.ItemDBSchema> inventory = _db.GetUserInventory(p._userName);
             Packet.UserInventory packet = new Packet.UserInventory();
-            foreach (ItemSchema.ItemDBSchema item in inventory)
-            {
-                packet.items.Append(item);
-            }
-
+            packet.items = inventory.ToArray();
             p._netPeer.Send(this.Write(packet), DeliveryMethod.ReliableOrdered);
         }
 
@@ -155,7 +151,6 @@ namespace Server
                 item.userName = p._userName;
                 item.quantity = 1;
                 _db.AddToUserInventory(item);
-
                 SendInventoryToPlayer(p); // Send inventory to player.
                 if (!_db.Unlock(smCopy.id)) // Unlock object in database.
                 {
@@ -180,7 +175,6 @@ namespace Server
             _db.Unlock(am.id);
             p.miningState.miningEndEventRef.Cancelled = true;
             p.AbortMining(amCopy.id);
-            SendToAllPlayers(this.Write<Packet.AbortMining>(amCopy));
             SendToAllOtherPlayers(p, this.Write<Packet.AbortMining>(amCopy));
         }
 
