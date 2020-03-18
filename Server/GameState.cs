@@ -115,6 +115,16 @@ namespace Server
 
         void OnStartMiningPacketReceived(Packet.StartMining sm, NetPeer peer)
         {
+            try
+            {
+                ValidatePacket(sm);
+            }
+            catch (ArgumentException ex)
+            {
+                Console.WriteLine(String.Format("Failed to validate packet in OnStartMiningPacketReceived from {0}: {1}", peer.EndPoint, ex.ToString()));
+                return;
+            }
+
             Packet.StartMining smCopy = sm.Copy();
             var p = _connectedPlayers[smCopy.userName];
             if (p.IsMining())
@@ -164,6 +174,16 @@ namespace Server
 
         public void OnAbortMiningPacketReceived(Packet.AbortMining am, NetPeer peer) 
         {
+            try
+            {
+                ValidatePacket(am);
+            }
+            catch (ArgumentException ex)
+            {
+                Console.WriteLine(String.Format("Failed to validate packet in OnAbortMiningPacketReceived from {0}: {1}", peer.EndPoint, ex.ToString()));
+                return;
+            }
+
             var amCopy = am.Copy();
             var p = _connectedPlayers[amCopy.userName];
             if (!p.IsMining(amCopy.id))
@@ -180,11 +200,30 @@ namespace Server
 
         void OnPlayerTransformReceived(Packet.PlayerTransform transform, NetPeer peer)
         {
+            try
+            {
+                ValidatePacket(transform);
+            }
+            catch (ArgumentException ex)
+            {
+                Console.WriteLine(String.Format("Failed to validate packet in OnPlayerTransformReceived from {0}: {1}", peer.EndPoint, ex.ToString()));
+                return;
+            }
+
             _connectedPlayers[transform.userName].lastTransform = transform.Copy();
         }
 
         void OnLoginReceived(Packet.Login login, NetPeer peer)
         {
+            try
+            {
+                ValidatePacket(login);
+            } catch (ArgumentException ex)
+            {
+                Console.WriteLine(String.Format("Failed to validate packet in OnLoginReceived from {0}: {1}", peer.EndPoint, ex.ToString()));
+                return;
+            }
+
             if (_connectedPlayers.ContainsKey(login.userName))
             {
                 Console.WriteLine("Player {0} is already logged in.", login.userName);
@@ -221,6 +260,32 @@ namespace Server
             SendToAllOtherPlayers(p, this.Write(new Packet.PlayerExited { userName = p._userName }));
             Console.WriteLine("Player {0} logged out.", p._userName);
             _connectedPlayers.Remove(p._userName);
+        }
+
+        private void ValidatePacket(object packet)
+        {
+            if (packet is Packet.ObjectIdentifier oi) { 
+                if (String.IsNullOrEmpty(oi.id))
+                {
+                    throw new ArgumentException("Object id in ObjectIdentifier packet is emtpy.");
+                }
+            }
+
+            if (packet is Packet.PlayerIdentifier pi)
+            {
+                if (String.IsNullOrEmpty(pi.userName))
+                {
+                    throw new ArgumentException("Player username in PlayerIdentifier packet is emtpy.");
+                }
+            }
+
+            if (packet is Packet.ITransform pt)
+            {
+                if (pt.x == 0 && pt.y == 0 && pt.z == 0 && pt.rot_x == 0 && pt.rot_y == 0 && pt.rot_z == 0 && pt.rot_w == 0)
+                {
+                    throw new ArgumentException("All of the values inside the ITransform packet are 0.");
+                }
+            }
         }
     }
 }
