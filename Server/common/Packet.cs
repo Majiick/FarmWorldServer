@@ -183,17 +183,38 @@ namespace Packet
 
     /*
      * Fishing sequence:
+     *    FishThrowBobbler -> Player to Server and server relays to all other players (this is just for animation).
      *    FishBobblerInWater -> Player to Server.
-     *    FishBiting -> Server to Player.
-     *    FishSuccessfulCatch or FishFailedCatch -> Player to Server.
-     *    FishCaught -> Server to all Player.
+     *    FishBiting -> Server to all players.
+     *    FishCaught -> Player to Server indicating whether they caught successfully and then Server to all Player (Server fills in what kind of fish was caught).
      *    If fish was caught: UserInventory -> Server to Player.
      */
 
+    // FishThrowBobbler is for both server and players.
+    class FishThrowBobbler : PlayerIdentifier, ITransform, ICopyAble<FishThrowBobbler>
+    {
+        public string userName { get; set; }
+
+        // Bobbler position
+        public float x { get; set; }
+        public float y { get; set; }
+        public float z { get; set; }
+        public float rot_x { get; set; }
+        public float rot_y { get; set; }
+        public float rot_z { get; set; }
+        public float rot_w { get; set; }
+
+        public FishThrowBobbler Copy()
+        {
+            return (FishThrowBobbler)this.MemberwiseClone();
+        }
+    }
+
     // BobblerInWater is only for server.
-    class FishBobblerInWater : ICopyAble<FishBobblerInWater>, ZoneIdentifier
+    class FishBobblerInWater : ZoneIdentifier, PlayerIdentifier, ICopyAble<FishBobblerInWater>
     {
         public string zone { get; set; }
+        public string userName { get; set; }
 
         public FishBobblerInWater Copy()
         {
@@ -201,38 +222,35 @@ namespace Packet
         }
     }
 
-    class FishBiting : ICopyAble<FishBiting>
+    class FishBiting : PlayerIdentifier, ICopyAble<FishBiting>
     {
+        public string userName { get; set; }
+
         public FishBiting Copy()
         {
             return (FishBiting)this.MemberwiseClone();
         }
     }
 
-    class FishSuccessfulCatch : ICopyAble<FishSuccessfulCatch>
+    class FishCaught : PlayerIdentifier, ICopyAble<FishCaught>
     {
-        public FishSuccessfulCatch Copy()
-        {
-            return (FishSuccessfulCatch)this.MemberwiseClone();
-        }
-    }
+        public string userName { get; set; }
 
-    class FishFailedCatch : ICopyAble<FishFailedCatch>
-    {
-        public FishFailedCatch Copy()
-        {
-            return (FishFailedCatch)this.MemberwiseClone();
-        }
-    }
-
-    class FishCaught : ICopyAble<FishCaught>
-    {
         public bool success { get; set; }
         public ItemSchema.ItemDBSchema fishItem { get; set; }
 
         public FishCaught Copy()
         {
             return (FishCaught)this.MemberwiseClone();
+        }
+    }
+
+    class AbortFishing : PlayerIdentifier, ICopyAble<AbortFishing>
+    {
+        public string userName { get; set; }
+        public AbortFishing Copy()
+        {
+            return (AbortFishing)this.MemberwiseClone();
         }
     }
 

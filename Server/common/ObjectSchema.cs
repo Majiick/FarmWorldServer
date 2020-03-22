@@ -29,7 +29,7 @@ namespace ObjectSchema
     }
 #endif
 
-    interface IObject
+    public interface IObject
     {
         string id { get; set; }
         string type { get; set; }

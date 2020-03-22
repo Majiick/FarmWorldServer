@@ -27,6 +27,10 @@ namespace Server
             SubscribeReusable<Packet.Login, LiteNetLib.NetPeer>(OnLoginReceived);
             SubscribeReusable<Packet.StartMining, LiteNetLib.NetPeer>(OnStartMiningPacketReceived);
             SubscribeReusable<Packet.AbortMining, LiteNetLib.NetPeer>(OnAbortMiningPacketReceived);
+            SubscribeReusable<Packet.FishThrowBobbler, LiteNetLib.NetPeer>(OnFishThrowBobblerPacketReceived);
+            SubscribeReusable<Packet.FishBobblerInWater, LiteNetLib.NetPeer>(OnFishBobblerInWaterPacketReceived);
+            SubscribeReusable<Packet.FishCaught, LiteNetLib.NetPeer>(OnFishCaughtPacketReceived);
+            SubscribeReusable<Packet.AbortFishing, LiteNetLib.NetPeer>(OnAbortFishingPacketReceived);
             SubscribeReusable<Packet.Developer.DeveloperPlaceMinableObject, LiteNetLib.NetPeer>(OnPlaceMinableObjectPacketReceived);
         }
 
@@ -104,6 +108,97 @@ namespace Server
             Packet.UserInventory packet = new Packet.UserInventory();
             packet.items = inventory.ToArray();
             p._netPeer.Send(this.Write(packet), DeliveryMethod.ReliableOrdered);
+        }
+
+        void OnFishThrowBobblerPacketReceived(Packet.FishThrowBobbler fw, NetPeer peer)
+        {
+            var fwCopy = fw.Copy();
+            try
+            {
+                ValidatePacket(fwCopy);
+            }
+            catch (ArgumentException ex)
+            {
+                Console.WriteLine(String.Format("Failed to validate packet in OnFishThrowBobblerPacketReceived from {0}: {1}", peer.EndPoint, ex.ToString()));
+                return;
+            }
+            var p = _connectedPlayers[fwCopy.userName];
+            p.ThrowBobbler();
+
+            SendToAllOtherPlayers(fwCopy.userName, this.Write<Packet.FishThrowBobbler>(fwCopy));
+        }
+
+        void OnFishBobblerInWaterPacketReceived(Packet.FishBobblerInWater fw, NetPeer peer)
+        {
+            var fwCopy = fw.Copy();
+            try
+            {
+                ValidatePacket(fwCopy);
+            }
+            catch (ArgumentException ex)
+            {
+                Console.WriteLine(String.Format("Failed to validate packet in OnFishBobblerInWaterPacketReceived from {0}: {1}", peer.EndPoint, ex.ToString()));
+                return;
+            }
+            var p = _connectedPlayers[fwCopy.userName];
+
+            DelayedEvent fishBitingEvent = new DelayedEvent(() =>  // This delayed event is cancelled if AbortFishing is called.
+            {
+                p.FishBiting();
+                SendToAllPlayers(this.Write(new Packet.FishBiting { userName = p._userName}));
+            });
+
+            p.BobblerInWater(fishBitingEvent, ZonesSchema.ZoneHelper.GetZone(fwCopy.zone));
+            Random rnd = new Random();
+            int waitSeconds = rnd.Next(3, 15);
+            AddDelayedEvent(fishBitingEvent, waitSeconds * Time.SECOND);
+        } 
+
+        void OnFishCaughtPacketReceived(Packet.FishCaught fw, NetPeer peer)
+        {
+            var fwCopy = fw.Copy();
+            try
+            {
+                ValidatePacket(fwCopy);
+            }
+            catch (ArgumentException ex)
+            {
+                Console.WriteLine(String.Format("Failed to validate packet in OnFishSuccessfulCatchPacketReceived from {0}: {1}", peer.EndPoint, ex.ToString()));
+                return;
+            }
+            var p = _connectedPlayers[fwCopy.userName];
+            if (!fwCopy.success)
+            {
+                p.FishUnsuccessfulCatch();
+                SendToAllPlayers(this.Write(new Packet.FishCaught { userName = p._userName, success = false }));
+                return;
+            }
+
+            p.FishSuccessfulCatch();
+            var item = new ItemSchema.ItemDBSchema();
+            item.uniqueName = ItemSchema.ItemNames.Herring.Value;
+            item.userName = p._userName;
+            item.quantity = 1;
+            _db.AddToUserInventory(item);
+            SendToAllPlayers(this.Write(new Packet.FishCaught { userName = p._userName, success = false, fishItem = item }));
+            SendInventoryToPlayer(p);
+        }
+
+        void OnAbortFishingPacketReceived(Packet.AbortFishing fw, NetPeer peer)
+        {
+            var fwCopy = fw.Copy();
+            try
+            {
+                ValidatePacket(fwCopy);
+            }
+            catch (ArgumentException ex)
+            {
+                Console.WriteLine(String.Format("Failed to validate packet in OnFishSuccessfulCatchPacketReceived from {0}: {1}", peer.EndPoint, ex.ToString()));
+                return;
+            }
+            var p = _connectedPlayers[fwCopy.userName];
+            p.AbortFishing();
+            SendToAllOtherPlayers(p, this.Write(fwCopy));
         }
 
         void OnPlaceMinableObjectPacketReceived(Packet.Developer.DeveloperPlaceMinableObject obj, NetPeer peer)
