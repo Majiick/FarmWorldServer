@@ -137,7 +137,7 @@ namespace ObjectSchema
 #endif
     }
 
-    class ObjectTypes
+    public class ObjectTypes
     {
         //IObject
         public class IObjectType
@@ -145,6 +145,7 @@ namespace ObjectSchema
             private IObjectType(string value) { Value = value; }
             public string Value { get; set; }
             public static IObjectType MINEABLE { get { return new IObjectType("MINEABLE"); } }
+            public static IObjectType FISHABLE { get { return new IObjectType("FISHABLE"); } }
         }
 
         //IMineable

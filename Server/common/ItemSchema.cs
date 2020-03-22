@@ -59,11 +59,24 @@ namespace ItemSchema
         }
     }
 
+    public class Herring : IItem
+    {
+        public string uniqueName { get; set; }
+        public string description { get; set; }
+
+        public Herring()
+        {
+            uniqueName = ItemNames.Herring.Value;
+            description = "A herring fish. Food for the commoners.";
+        }
+    }
+
     public class ItemSchema
     {
         private static readonly ItemSchema instance = new ItemSchema();
         private static Dictionary<string, IItem> itemMap = new Dictionary<string, IItem>();
-        static ItemSchema() {
+        static ItemSchema()
+        {
             itemMap[ItemNames.Ore.Value] = new Ore();
         }
         private ItemSchema() { }
@@ -82,5 +95,6 @@ namespace ItemSchema
         public string Value { get; set; }
         public static ItemNames Ore { get { return new ItemNames("Ore"); } }
         public static ItemNames Geode { get { return new ItemNames("Geode"); } }
+        public static ItemNames Herring { get { return new ItemNames("Herring"); } }
     }
 }

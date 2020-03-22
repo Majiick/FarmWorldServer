@@ -22,6 +22,11 @@ namespace Packet
         string userName { get; set; }  // This is a unique identifier for players.
     }
 
+    interface ZoneIdentifier
+    {
+        string zone { get; set; }  // This is a unique identifier for zones.
+    }
+
     interface ITransform
     {
         float x { get; set; }
@@ -42,6 +47,7 @@ namespace Packet
         {
             return (UserInventory)this.MemberwiseClone();
         }
+
         public override string ToString()
         {
             string str = "";
@@ -89,10 +95,11 @@ namespace Packet
         }
     }
 
+
     // Abort minind is for server and player.
     // Abort mining is sent to server when a player interrupts mining.
     // It is also relayed from server to clients.
-    class AbortMining : ObjectIdentifier, PlayerIdentifier, ICopyAble<AbortMining> 
+    class AbortMining : ObjectIdentifier, PlayerIdentifier, ICopyAble<AbortMining>
     {
         public string id { get; set; }  // id of mineable object.
         public string userName { get; set; }  // userName of player who was mining.
@@ -171,6 +178,61 @@ namespace Packet
         public PlaceMinableObject Copy()
         {
             return (PlaceMinableObject)this.MemberwiseClone();
+        }
+    }
+
+    /*
+     * Fishing sequence:
+     *    FishBobblerInWater -> Player to Server.
+     *    FishBiting -> Server to Player.
+     *    FishSuccessfulCatch or FishFailedCatch -> Player to Server.
+     *    FishCaught -> Server to all Player.
+     *    If fish was caught: UserInventory -> Server to Player.
+     */
+
+    // BobblerInWater is only for server.
+    class FishBobblerInWater : ICopyAble<FishBobblerInWater>, ZoneIdentifier
+    {
+        public string zone { get; set; }
+
+        public FishBobblerInWater Copy()
+        {
+            return (FishBobblerInWater)this.MemberwiseClone();
+        }
+    }
+
+    class FishBiting : ICopyAble<FishBiting>
+    {
+        public FishBiting Copy()
+        {
+            return (FishBiting)this.MemberwiseClone();
+        }
+    }
+
+    class FishSuccessfulCatch : ICopyAble<FishSuccessfulCatch>
+    {
+        public FishSuccessfulCatch Copy()
+        {
+            return (FishSuccessfulCatch)this.MemberwiseClone();
+        }
+    }
+
+    class FishFailedCatch : ICopyAble<FishFailedCatch>
+    {
+        public FishFailedCatch Copy()
+        {
+            return (FishFailedCatch)this.MemberwiseClone();
+        }
+    }
+
+    class FishCaught : ICopyAble<FishCaught>
+    {
+        public bool success { get; set; }
+        public ItemSchema.ItemDBSchema fishItem { get; set; }
+
+        public FishCaught Copy()
+        {
+            return (FishCaught)this.MemberwiseClone();
         }
     }
 
