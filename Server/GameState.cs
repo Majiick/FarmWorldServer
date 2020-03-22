@@ -124,7 +124,6 @@ namespace Server
             }
             var p = _connectedPlayers[fwCopy.userName];
             p.ThrowBobbler();
-
             SendToAllOtherPlayers(fwCopy.userName, this.Write<Packet.FishThrowBobbler>(fwCopy));
         }
 
