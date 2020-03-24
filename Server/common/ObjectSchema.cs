@@ -5,8 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ObjectSchema
-{
+namespace ObjectSchema {
     /*
         * This namespace defines all of the in-game objects and their structure.
         * The way any class is defined here is the way it is represented in the database in a JSON structure.
@@ -22,28 +21,24 @@ namespace ObjectSchema
         *   3. Make sure to update ConstructObject.
     */
 #if !UNITY_STANDALONE
-    interface IFromJson<T>
-    {
+    interface IFromJson<T> {
         // ref T obj is the object passed by reference this 'this' keyword is passed by value on structs.
         void FromJson(Newtonsoft.Json.Linq.JObject json, ref T obj);
     }
 #endif
 
-    public interface IObject
-    {
+    interface IObject {
         string id { get; set; }
         string type { get; set; }
     }
 
-    interface ILockable
-    {
+    interface ILockable {
         bool locked { get; set; }
         string lockedBy { get; set; }
         long lockStartTime { get; set; }
     }
 
-    interface IMineable
-    {
+    interface IMineable {
         string mineableType { get; set; }
         string size { get; set; }
     }
@@ -76,8 +71,7 @@ namespace ObjectSchema
         public string lockedBy { get; set; }
         public long lockStartTime { get; set; }
 
-        public void Deserialize(NetDataReader reader)
-        {
+        public void Deserialize(NetDataReader reader) {
             id = reader.GetString();
             type = reader.GetString();
             mineableType = reader.GetString();
@@ -97,8 +91,7 @@ namespace ObjectSchema
             lockStartTime = reader.GetLong();
         }
 
-        public void Serialize(NetDataWriter writer)
-        {
+        public void Serialize(NetDataWriter writer) {
             writer.Put(id);
             writer.Put(type);
             writer.Put(mineableType);
@@ -119,8 +112,7 @@ namespace ObjectSchema
         }
 
 #if !UNITY_STANDALONE
-        public void FromJson(Newtonsoft.Json.Linq.JObject json, ref Mineable obj)
-        {
+        public void FromJson(Newtonsoft.Json.Linq.JObject json, ref Mineable obj) {
             obj.id = json.Value<string>("id");
             obj.type = json.Value<string>("type");
             obj.mineableType = json.Value<string>("mineableType");
@@ -137,11 +129,9 @@ namespace ObjectSchema
 #endif
     }
 
-    public class ObjectTypes
-    {
+    public class ObjectTypes {
         //IObject
-        public class IObjectType
-        {
+        public class IObjectType {
             private IObjectType(string value) { Value = value; }
             public string Value { get; set; }
             public static IObjectType MINEABLE { get { return new IObjectType("MINEABLE"); } }
@@ -149,22 +139,20 @@ namespace ObjectSchema
         }
 
         //IMineable
-        public class IMineableMineableType
-        {
+        public class IMineableMineableType {
             private IMineableMineableType(string value) { Value = value; }
             public string Value { get; set; }
             public static IMineableMineableType ROCK { get { return new IMineableMineableType("ROCK"); } }
             public static IMineableMineableType TREE { get { return new IMineableMineableType("TREE"); } }
         }
-        public class IMineableSubMineableType
-        {
+        public class IMineableSubMineableType {
             private IMineableSubMineableType(string value) { Value = value; }
             public string Value { get; set; }
             public static IMineableSubMineableType STONE { get { return new IMineableSubMineableType("STONE"); } }
             public static IMineableSubMineableType IRON { get { return new IMineableSubMineableType("IRON"); } }
+            public static IMineableSubMineableType OAK { get { return new IMineableSubMineableType("OAK"); } }
         }
-        public class IMineableSize
-        {
+        public class IMineableSize {
             private IMineableSize(string value) { Value = value; }
             public string Value { get; set; }
             public static IMineableSize SMALL { get { return new IMineableSize("SMALL"); } }
@@ -176,18 +164,14 @@ namespace ObjectSchema
         // Helpers
         // Constructs the correct object from json and sets the id.
 #if !UNITY_STANDALONE
-        public static IObject ConstructObject(string id, Newtonsoft.Json.Linq.JObject json)
-        {
+        public static IObject ConstructObject(string id, Newtonsoft.Json.Linq.JObject json) {
             string iObjectType = json.Value<string>("type");
-            if (iObjectType == IObjectType.MINEABLE.Value)
-            {
+            if (iObjectType == IObjectType.MINEABLE.Value) {
                 Mineable m = new Mineable();
                 m.FromJson(json, ref m);
                 m.id = id;
                 return m;
-            }
-            else
-            {
+            } else {
                 throw new ArgumentException(String.Format("Object of type {0} cannot be decoded id '{1}'.", iObjectType, id));
             }
         }

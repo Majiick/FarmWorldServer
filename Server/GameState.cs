@@ -380,6 +380,13 @@ namespace Server
                     throw new ArgumentException("All of the values inside the ITransform packet are 0.");
                 }
             }
+
+            if (packet is Packet.PlaceMinableObject packet) {
+
+                if (String.IsNullOrEmpty(packet.mineable.mineableType)) {
+                    throw new ArgumentException("Placeable minable type in PlaceMinableObject packet is emtpy.");
+                }
+            }
         }
     }
 }
