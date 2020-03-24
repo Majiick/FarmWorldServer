@@ -381,9 +381,9 @@ namespace Server
                 }
             }
 
-            if (packet is Packet.PlaceMinableObject packet) {
+            if (packet is Packet.PlaceMinableObject po) {
 
-                if (String.IsNullOrEmpty(packet.mineable.mineableType)) {
+                if (String.IsNullOrEmpty(po.mineable.mineableType)) {
                     throw new ArgumentException("Placeable minable type in PlaceMinableObject packet is emtpy.");
                 }
             }
