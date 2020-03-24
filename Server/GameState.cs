@@ -249,9 +249,21 @@ namespace Server
                 p.EndMining(smCopy.id);
                 SendToAllPlayers(this.Write(new Packet.EndMining { id = smCopy.id, userName = smCopy.userName })); // Send finish mining notification to everyone including player.
 
-                // Add ore to user inventory
+                // Add item to user inventory
                 var item = new ItemSchema.ItemDBSchema();
-                item.uniqueName = ItemSchema.ItemNames.Ore.Value;
+                if (smCopy.minableType == ObjectSchema.ObjectTypes.IMineableMineableType.TREE.Value)
+                {
+                    item.uniqueName = ItemSchema.ItemNames.Wood.Value;
+                } 
+                else if (smCopy.minableType == ObjectSchema.ObjectTypes.IMineableMineableType.ROCK.Value)
+                {
+                    item.uniqueName = ItemSchema.ItemNames.Ore.Value;
+                }
+                else
+                {
+                    throw new ArgumentException(String.Format("smCopy.minableType type {0} not recognized.", smCopy.minableType));
+                }
+
                 item.userName = p._userName;
                 item.quantity = 1;
                 _db.AddToUserInventory(item);

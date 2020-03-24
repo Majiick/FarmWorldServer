@@ -59,6 +59,18 @@ namespace ItemSchema
         }
     }
 
+    public class Wood : IItem
+    {
+        public string uniqueName { get; set; }
+        public string description { get; set; }
+
+        public Wood()
+        {
+            uniqueName = ItemNames.Wood.Value;
+            description = "It's an ordinary piece of wood.";
+        }
+    }
+
     public class Herring : IItem
     {
         public string uniqueName { get; set; }
@@ -96,5 +108,6 @@ namespace ItemSchema
         public static ItemNames Ore { get { return new ItemNames("Ore"); } }
         public static ItemNames Geode { get { return new ItemNames("Geode"); } }
         public static ItemNames Herring { get { return new ItemNames("Herring"); } }
+        public static ItemNames Wood { get { return new ItemNames("Wood"); } }
     }
 }
