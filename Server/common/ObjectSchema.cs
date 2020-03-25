@@ -43,6 +43,11 @@ namespace ObjectSchema {
         string size { get; set; }
     }
 
+    interface IPlantable {
+        float growthTime { get; set; }
+        string plantableType { get; set; }
+    }
+
     public struct Mineable : Packet.ITransform, IObject, IMineable, ILockable, INetSerializable
 #if !UNITY_STANDALONE
         , IFromJson<Mineable>
@@ -129,6 +134,83 @@ namespace ObjectSchema {
 #endif
     }
 
+    public struct Plantable : Packet.ITransform, IObject, IPlantable, ILockable, INetSerializable
+#if !UNITY_STANDALONE
+        , IFromJson<Plantable>
+#endif
+    {
+        //IObject
+        public string id { get; set; }
+        public string type { get; set; }
+        public float growthTime { get; set; }
+        public string plantableType { get; set; }
+
+        // Transform
+        public float x { get; set; }
+        public float y { get; set; }
+        public float z { get; set; }
+        public float rot_x { get; set; }
+        public float rot_y { get; set; }
+        public float rot_z { get; set; }
+        public float rot_w { get; set; }
+
+        // Lock
+        public bool locked { get; set; }
+        public string lockedBy { get; set; }
+        public long lockStartTime { get; set; }
+
+        public void Deserialize(NetDataReader reader) {
+            id = reader.GetString();
+            type = reader.GetString();
+            growthTime = reader.GetFloat();
+            plantableType = reader.GetString();
+            x = reader.GetFloat();
+            y = reader.GetFloat();
+            z = reader.GetFloat();
+            rot_x = reader.GetFloat();
+            rot_y = reader.GetFloat();
+            rot_z = reader.GetFloat();
+            rot_w = reader.GetFloat();
+
+            locked = reader.GetBool();
+            lockedBy = reader.GetString();
+            lockStartTime = reader.GetLong();
+        }
+
+        public void Serialize(NetDataWriter writer) {
+            writer.Put(id);
+            writer.Put(type);
+            writer.Put(growthTime);
+            writer.Put(plantableType);
+            writer.Put(x);
+            writer.Put(y);
+            writer.Put(z);
+            writer.Put(rot_x);
+            writer.Put(rot_y);
+            writer.Put(rot_z);
+            writer.Put(rot_w);
+
+            writer.Put(locked);
+            writer.Put(lockedBy);
+            writer.Put(lockStartTime);
+        }
+
+#if !UNITY_STANDALONE
+        public void FromJson(Newtonsoft.Json.Linq.JObject json, ref Plantable obj) {
+            obj.id = json.Value<string>("id");
+            obj.type = json.Value<string>("type");
+            obj.plantableType = json.Value<string>("plantableType");
+            obj.x = json.Value<float>("x");
+            obj.y = json.Value<float>("y");
+            obj.z = json.Value<float>("z");
+            obj.rot_x = json.Value<float>("rot_x");
+            obj.rot_y = json.Value<float>("rot_y");
+            obj.rot_z = json.Value<float>("rot_z");
+            obj.rot_w = json.Value<float>("rot_w");
+        }
+#endif
+    }
+
     public class ObjectTypes {
         //IObject
         public class IObjectType {
@@ -136,6 +218,15 @@ namespace ObjectSchema {
             public string Value { get; set; }
             public static IObjectType MINEABLE { get { return new IObjectType("MINEABLE"); } }
             public static IObjectType FISHABLE { get { return new IObjectType("FISHABLE"); } }
+            public static IObjectType PLANTABLE { get { return new IObjectType("PLANTABLE"); } }
+        }
+
+        //Plantable
+        public class IPlantableType {
+            private IPlantableType(string value) { Value = value; }
+            public string Value { get; set; }
+            public static IPlantableType WHEAT { get { return new IPlantableType("WHEAT"); } }
+            public static IPlantableType TREE { get { return new IPlantableType("TREE"); } }
         }
 
         //IMineable

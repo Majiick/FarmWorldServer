@@ -33,7 +33,7 @@ namespace Packet {
     }
 
     // UserInventory is only for Player.
-    class UserInventory : ICopyAble<UserInventory> {
+    public class UserInventory : ICopyAble<UserInventory> {
         public ItemSchema.ItemDBSchema[] items { get; set; }
 
         public UserInventory Copy() {
@@ -151,6 +151,15 @@ namespace Packet {
 
         public PlaceMinableObject Copy() {
             return (PlaceMinableObject)this.MemberwiseClone();
+        }
+    }
+
+    // PlacePlantableObject is only for client
+    class PlacePlantableObject : ICopyAble<PlacePlantableObject> {
+        public ObjectSchema.Plantable plantable { get; set; }
+
+        public PlacePlantableObject Copy() {
+            return (PlacePlantableObject)this.MemberwiseClone();
         }
     }
 

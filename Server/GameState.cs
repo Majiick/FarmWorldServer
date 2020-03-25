@@ -21,6 +21,7 @@ namespace Server
             _db = db;
 
             RegisterNestedType<ObjectSchema.Mineable>();
+            RegisterNestedType<ObjectSchema.Plantable>();
             RegisterNestedType<ItemSchema.ItemDBSchema>();
 
             SubscribeReusable<Packet.PlayerTransform, LiteNetLib.NetPeer>(OnPlayerTransformReceived);
@@ -32,6 +33,7 @@ namespace Server
             SubscribeReusable<Packet.FishCaught, LiteNetLib.NetPeer>(OnFishCaughtPacketReceived);
             SubscribeReusable<Packet.AbortFishing, LiteNetLib.NetPeer>(OnAbortFishingPacketReceived);
             SubscribeReusable<Packet.Developer.DeveloperPlaceMinableObject, LiteNetLib.NetPeer>(OnPlaceMinableObjectPacketReceived);
+            SubscribeReusable<Packet.PlacePlantableObject, LiteNetLib.NetPeer>(OnPlacePlantableObjectPacketReceived);
         }
 
         public void Tick()
@@ -207,6 +209,12 @@ namespace Server
             SendToAllPlayers(this.Write(new Packet.PlaceMinableObject { mineable = m }));
         }
 
+        void OnPlacePlantableObjectPacketReceived(Packet.PlacePlantableObject obj, NetPeer peer) {
+            var id = _db.Write(obj.plantable);
+            ObjectSchema.Plantable m = _db.Read<ObjectSchema.Plantable>(id);
+            SendToAllPlayers(this.Write(new Packet.PlacePlantableObject { plantable = m }));
+        }
+
         void OnStartMiningPacketReceived(Packet.StartMining sm, NetPeer peer)
         {
             try
@@ -324,6 +332,7 @@ namespace Server
             try
             {
                 ValidatePacket(login);
+                Console.WriteLine("Player {0} is has just logged in.", login.userName);
             } catch (ArgumentException ex)
             {
                 Console.WriteLine(String.Format("Failed to validate packet in OnLoginReceived from {0}: {1}", peer.EndPoint, ex.ToString()));
@@ -348,6 +357,11 @@ namespace Server
             {
                 peer.Send(this.Write(new Packet.PlaceMinableObject { mineable = mineable }), DeliveryMethod.ReliableUnordered);
             }
+
+            List<ObjectSchema.Plantable> allPlantables = _db.ReadAllObjects<ObjectSchema.Plantable>(ObjectSchema.ObjectTypes.IObjectType.PLANTABLE);
+            foreach (var plantable in allPlantables) {
+                peer.Send(this.Write(new Packet.PlacePlantableObject { plantable = plantable }), DeliveryMethod.ReliableUnordered);
+            }
         }
 
         public void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
@@ -355,7 +369,7 @@ namespace Server
             PlayerState p;
             try
             {
-                p = _connectedPlayers.Values.Single(p => p._netPeer == peer);
+                p = _connectedPlayers.Values.Single(pack => pack._netPeer == peer);
             } 
             catch (InvalidOperationException)
             {
