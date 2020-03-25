@@ -13,7 +13,6 @@ namespace Server
     {
         Dictionary<string, PlayerState> _connectedPlayers = new Dictionary<string, PlayerState>();
         List<DelayedEvent> _delayedEvents = new List<DelayedEvent>();
-        public long TickStartTime { get; set; }  // Gets set by the Server at the start of the tick.
         Database _db;
 
         public GameState(Database db)
@@ -48,12 +47,12 @@ namespace Server
 
         void AddDelayedEvent(Action action, long executionDelay)
         {
-            _delayedEvents.Add(new DelayedEvent(action, executeAt: TickStartTime + executionDelay));
+            _delayedEvents.Add(new DelayedEvent(action, executeAt: GameTime.Instance().TickStartTime() + executionDelay));
         }
 
         void AddDelayedEvent(DelayedEvent e, long executionDelay)
         {
-            e.ExecuteAt = TickStartTime + executionDelay;
+            e.ExecuteAt = GameTime.Instance().TickStartTime() + executionDelay;
             _delayedEvents.Add(e);
         }
 
@@ -62,7 +61,7 @@ namespace Server
             List<DelayedEvent> notExecuted = new List<DelayedEvent>(_delayedEvents.Count);
             foreach (DelayedEvent e in _delayedEvents)
             {
-                if (TickStartTime >= e.ExecuteAt && !e.Cancelled)
+                if (GameTime.Instance().TickStartTime() >= e.ExecuteAt && !e.Cancelled)
                 {
                     e.Action();
                 } else
@@ -152,7 +151,7 @@ namespace Server
             p.BobblerInWater(fishBitingEvent, ZonesSchema.ZoneHelper.GetZone(fwCopy.zone));
             Random rnd = new Random();
             int waitSeconds = rnd.Next(3, 15);
-            AddDelayedEvent(fishBitingEvent, waitSeconds * Time.SECOND);
+            AddDelayedEvent(fishBitingEvent, waitSeconds * GameTime.SECOND);
         } 
 
         void OnFishCaughtPacketReceived(Packet.FishCaught fw, NetPeer peer)
@@ -283,7 +282,7 @@ namespace Server
             });
             p.StartMining(smCopy.id, finishMiningEvent);
             SendToAllOtherPlayers(smCopy.userName, this.Write<Packet.StartMining>(smCopy.Copy())); // Send notification to all other players.
-            AddDelayedEvent(finishMiningEvent, 3 * Time.SECOND);
+            AddDelayedEvent(finishMiningEvent, 3 * GameTime.SECOND);
         }
 
         public void OnAbortMiningPacketReceived(Packet.AbortMining am, NetPeer peer) 
