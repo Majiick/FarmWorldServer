@@ -65,9 +65,6 @@ namespace Server
 
     class Server
     {
-        public readonly int port = 9050;
-        public readonly int maxClients = 10;
-        public readonly int ticksPerSecond = 10;
         NetManager _server;
         Database _db;
 
@@ -89,19 +86,19 @@ namespace Server
             Listener listener = new Listener();
             _server = new NetManager(listener);
             listener.Setup(gameState);
-            _server.Start(port);
+            _server.Start(GameConfig.Instance().config.port);
             Console.WriteLine("Server started.");
 
             Stopwatch _precisionTime = new Stopwatch();
             _precisionTime.Start();
             while (!Console.KeyAvailable)
             {
-                gameState.TickStartTime = _precisionTime.ElapsedMilliseconds;
+                GameTime.Instance().UpdateTickStartTime(_precisionTime.ElapsedMilliseconds); // Update the tick start time.
                 _server.PollEvents();
                 gameState.Tick();
 
                 // Wait until time for next tick.
-                while (_precisionTime.ElapsedMilliseconds < gameState.TickStartTime + (1000 / ticksPerSecond))
+                while (_precisionTime.ElapsedMilliseconds < GameTime.Instance().TickStartTime() + (1000 / GameConfig.Instance().config.ticksPerSecond))
                 {
                     Thread.Sleep(1);
                 }
