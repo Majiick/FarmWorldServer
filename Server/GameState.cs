@@ -6,6 +6,7 @@ using System.Text;
 using System.Linq;
 using System.Threading;
 using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace Server
 {
@@ -209,9 +210,14 @@ namespace Server
         }
 
         void OnPlacePlantableObjectPacketReceived(Packet.PlacePlantableObject obj, NetPeer peer) {
-            var id = _db.Write(obj.plantable);
-            ObjectSchema.Plantable m = _db.Read<ObjectSchema.Plantable>(id);
-            SendToAllPlayers(this.Write(new Packet.PlacePlantableObject { plantable = m }));
+
+            ObjectSchema.Plantable toWritePlant = obj.Copy().plantable;
+            toWritePlant.growthTime = PlantManager.CalculateGrowthTime(toWritePlant.plantableType);
+            toWritePlant.timePlanted = GameTime.Instance().TickStartTime();
+            var id = _db.Write(toWritePlant);
+      
+            ObjectSchema.Plantable readPlant = _db.Read<ObjectSchema.Plantable>(id);
+            SendToAllPlayers(this.Write(new Packet.PlacePlantableObject { plantable = readPlant}));
         }
 
         void OnStartMiningPacketReceived(Packet.StartMining sm, NetPeer peer)

@@ -43,11 +43,6 @@ namespace ObjectSchema {
         string size { get; set; }
     }
 
-    interface IPlantable {
-        float growthTime { get; set; }
-        string plantableType { get; set; }
-    }
-
     public struct Mineable : Packet.ITransform, IObject, IMineable, ILockable, INetSerializable
 #if !UNITY_STANDALONE
         , IFromJson<Mineable>
@@ -134,6 +129,12 @@ namespace ObjectSchema {
 #endif
     }
 
+    interface IPlantable {
+        long growthTime { get; set; }
+        string plantableType { get; set; }
+        long timePlanted { get; set; }
+    }
+
     public struct Plantable : Packet.ITransform, IObject, IPlantable, ILockable, INetSerializable
 #if !UNITY_STANDALONE
         , IFromJson<Plantable>
@@ -142,8 +143,9 @@ namespace ObjectSchema {
         //IObject
         public string id { get; set; }
         public string type { get; set; }
-        public float growthTime { get; set; }
+        public long growthTime { get; set; }
         public string plantableType { get; set; }
+        public long timePlanted { get; set; }
 
         // Transform
         public float x { get; set; }
@@ -162,8 +164,9 @@ namespace ObjectSchema {
         public void Deserialize(NetDataReader reader) {
             id = reader.GetString();
             type = reader.GetString();
-            growthTime = reader.GetFloat();
+            growthTime = reader.GetLong();
             plantableType = reader.GetString();
+            timePlanted = reader.GetLong();
             x = reader.GetFloat();
             y = reader.GetFloat();
             z = reader.GetFloat();
@@ -182,6 +185,7 @@ namespace ObjectSchema {
             writer.Put(type);
             writer.Put(growthTime);
             writer.Put(plantableType);
+            writer.Put(timePlanted);
             writer.Put(x);
             writer.Put(y);
             writer.Put(z);
@@ -200,6 +204,8 @@ namespace ObjectSchema {
             obj.id = json.Value<string>("id");
             obj.type = json.Value<string>("type");
             obj.plantableType = json.Value<string>("plantableType");
+            obj.growthTime = json.Value<long>("growthTime");
+            obj.timePlanted = json.Value<long>("timePlanted");
             obj.x = json.Value<float>("x");
             obj.y = json.Value<float>("y");
             obj.z = json.Value<float>("z");
@@ -209,6 +215,16 @@ namespace ObjectSchema {
             obj.rot_w = json.Value<float>("rot_w");
         }
 #endif
+    }
+
+    //The increment of time in ms between the different states of the plant state
+    public class ObjectLifeTimes {
+        public class IPlantLifeTime {
+            private IPlantLifeTime(long value) { Value = value; }
+            public long Value { get; set; }
+            public static IPlantLifeTime WHEAT { get { return new IPlantLifeTime(20000); } }
+            public static IPlantLifeTime TREE { get { return new IPlantLifeTime(40000); } }
+        }
     }
 
     public class ObjectTypes {
@@ -250,6 +266,7 @@ namespace ObjectSchema {
             public static IMineableSize MEDIUM { get { return new IMineableSize("MEDIUM"); } }
             public static IMineableSize LARGE { get { return new IMineableSize("LARGE"); } }
         }
+
 
 
         // Helpers
