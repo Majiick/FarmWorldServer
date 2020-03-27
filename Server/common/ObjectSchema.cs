@@ -222,7 +222,7 @@ namespace ObjectSchema {
         public class IPlantLifeTime {
             private IPlantLifeTime(long value) { Value = value; }
             public long Value { get; set; }
-            public static IPlantLifeTime WHEAT { get { return new IPlantLifeTime(20000); } }
+            public static IPlantLifeTime WHEAT { get { return new IPlantLifeTime(10000); } }
             public static IPlantLifeTime TREE { get { return new IPlantLifeTime(40000); } }
         }
     }

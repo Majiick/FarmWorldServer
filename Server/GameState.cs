@@ -217,6 +217,7 @@ namespace Server
             var id = _db.Write(toWritePlant);
       
             ObjectSchema.Plantable readPlant = _db.Read<ObjectSchema.Plantable>(id);
+            SendToAllPlayers(this.Write(new Packet.StartPlanting { userName = obj.userName }));
             SendToAllPlayers(this.Write(new Packet.PlacePlantableObject { plantable = readPlant}));
         }
 
@@ -355,6 +356,9 @@ namespace Server
 
             // Send player's inventory to them.
             SendInventoryToPlayer(_connectedPlayers[login.userName]);
+
+            //Send Current time to player
+            peer.Send(this.Write(new Packet.CurrentServerTime { time = GameTime.Instance().TickStartTime() }), DeliveryMethod.ReliableUnordered);
 
             // Send all mineable objects to player.
             List< ObjectSchema.Mineable> allMinables = _db.ReadAllObjects<ObjectSchema.Mineable>(ObjectSchema.ObjectTypes.IObjectType.MINEABLE);

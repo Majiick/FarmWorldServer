@@ -70,6 +70,16 @@ namespace Packet {
         }
     }
 
+    // Start Planting is used server -> player
+    class StartPlanting : ObjectIdentifier, PlayerIdentifier, ICopyAble<StartPlanting> {
+        public string id { get; set; }
+        public string userName { get; set; }
+
+        public StartPlanting Copy() {
+            return (StartPlanting)this.MemberwiseClone();
+        }
+    }
+
     // MiningLockFailed is only for Player.
     class MiningLockFailed : ObjectIdentifier, PlayerIdentifier, ICopyAble<MiningLockFailed> {
         public string id { get; set; }
@@ -146,6 +156,16 @@ namespace Packet {
     }
 
     // PlaceMinableObject is only for client.
+    class CurrentServerTime : ICopyAble<CurrentServerTime> {
+        public long time { get; set; }
+
+        public CurrentServerTime Copy() {
+            return (CurrentServerTime)this.MemberwiseClone();
+        }
+    }
+
+
+    // PlaceMinableObject is only for client.
     class PlaceMinableObject : ICopyAble<PlaceMinableObject> {
         public ObjectSchema.Mineable mineable { get; set; }
 
@@ -155,7 +175,8 @@ namespace Packet {
     }
 
     // PlacePlantableObject is only for client
-    class PlacePlantableObject : ICopyAble<PlacePlantableObject> {
+    class PlacePlantableObject : PlayerIdentifier, ICopyAble<PlacePlantableObject> {
+        public string userName { get; set; }
         public ObjectSchema.Plantable plantable { get; set; }
 
         public PlacePlantableObject Copy() {
