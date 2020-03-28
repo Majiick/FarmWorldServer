@@ -96,9 +96,8 @@ namespace Server
                 GameTime.Instance().UpdateTickStartTime(_precisionTime.ElapsedMilliseconds); // Update the tick start time.
                 _server.PollEvents();
                 gameState.Tick();
-
                 // Wait until time for next tick.
-                while (_precisionTime.ElapsedMilliseconds < GameTime.Instance().TickStartTime() + (1000 / GameConfig.Instance().config.ticksPerSecond))
+                while (GameTime.Instance().TickStartTime() + _precisionTime.ElapsedMilliseconds < GameTime.Instance().TickStartTime() + (1000 / GameConfig.Instance().config.ticksPerSecond))
                 {
                     Thread.Sleep(1);
                 }

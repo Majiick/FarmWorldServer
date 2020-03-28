@@ -218,7 +218,7 @@ namespace Server
             var id = _db.Write(toWritePlant);
       
             ObjectSchema.Plantable readPlant = _db.Read<ObjectSchema.Plantable>(id);
-            SendToAllOtherPlayers(ppCopy.userName, this.Write(new Packet.StartPlanting { userName = ppCopy.userName }));
+            SendToAllPlayers(this.Write(new Packet.StartPlanting { userName = ppCopy.userName }));
             SendToAllPlayers(this.Write(new Packet.PlacePlantableObject { plantable = readPlant}));
         }
 
@@ -339,7 +339,6 @@ namespace Server
             try
             {
                 ValidatePacket(login);
-                Console.WriteLine("Player {0} is has just logged in.", login.userName);
             } catch (ArgumentException ex)
             {
                 Console.WriteLine(String.Format("Failed to validate packet in OnLoginReceived from {0}: {1}", peer.EndPoint, ex.ToString()));
@@ -359,18 +358,19 @@ namespace Server
             SendInventoryToPlayer(_connectedPlayers[login.userName]);
 
             //Send Current time to player
-            peer.Send(this.Write(new Packet.CurrentServerTime { time = GameTime.Instance().TickStartTime() }), DeliveryMethod.ReliableUnordered);
+            peer.Send(this.Write(new Packet.CurrentServerTime { time = GameTime.Instance().TickStartTime() }), DeliveryMethod.ReliableSequenced);
 
             // Send all mineable objects to player.
             List< ObjectSchema.Mineable> allMinables = _db.ReadAllObjects<ObjectSchema.Mineable>(ObjectSchema.ObjectTypes.IObjectType.MINEABLE);
             foreach (var mineable in allMinables)
             {
-                peer.Send(this.Write(new Packet.PlaceMinableObject { mineable = mineable }), DeliveryMethod.ReliableUnordered);
+                peer.Send(this.Write(new Packet.PlaceMinableObject { mineable = mineable }), DeliveryMethod.ReliableSequenced);
             }
 
             List<ObjectSchema.Plantable> allPlantables = _db.ReadAllObjects<ObjectSchema.Plantable>(ObjectSchema.ObjectTypes.IObjectType.PLANTABLE);
-            foreach (var plantable in allPlantables) {
-                peer.Send(this.Write(new Packet.PlacePlantableObject { plantable = plantable }), DeliveryMethod.ReliableUnordered);
+            foreach (var plantable in allPlantables)
+            {
+                peer.Send(this.Write(new Packet.PlacePlantableObject { plantable = plantable }), DeliveryMethod.ReliableSequenced);
             }
         }
 
