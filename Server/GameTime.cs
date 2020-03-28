@@ -18,6 +18,9 @@ namespace Server
         private long _offset;
         private long _tickStartTime; // Gets set by the Server at the start of the tick.
 
+        private readonly long saveInterval = 5000;
+        private long lastSaveTime = 0;
+
         public static GameTime Instance()
         {
             if (_instance == null)
@@ -31,6 +34,7 @@ namespace Server
         private GameTime()
         {
             _offset = GameConfig.Instance().config.startTime;
+            lastSaveTime = _offset;
         }
 
         public long TickStartTime()  // in milliseconds.
@@ -41,6 +45,13 @@ namespace Server
         public void UpdateTickStartTime(long tickStartTime)
         {
             _tickStartTime = tickStartTime;
+
+            if (_tickStartTime > lastSaveTime + saveInterval)
+            {
+                GameConfig.Instance().config.startTime = _tickStartTime;
+                GameConfig.Instance().WriteConfig();
+                lastSaveTime = tickStartTime;
+            }
         }
     }
 }
