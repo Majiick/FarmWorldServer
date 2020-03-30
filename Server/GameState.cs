@@ -26,7 +26,9 @@ namespace Server
 
             SubscribeReusable<Packet.PlayerTransform, LiteNetLib.NetPeer>(OnPlayerTransformReceived);
             SubscribeReusable<Packet.Login, LiteNetLib.NetPeer>(OnLoginReceived);
+            SubscribeReusable<Packet.MinedQuantity, LiteNetLib.NetPeer>(OnMinedQuantityReceived);
             SubscribeReusable<Packet.StartMining, LiteNetLib.NetPeer>(OnStartMiningPacketReceived);
+            SubscribeReusable<Packet.EndMining, LiteNetLib.NetPeer>(OnEndMiningPacketReceived);
             SubscribeReusable<Packet.AbortMining, LiteNetLib.NetPeer>(OnAbortMiningPacketReceived);
             SubscribeReusable<Packet.FishThrowBobbler, LiteNetLib.NetPeer>(OnFishThrowBobblerPacketReceived);
             SubscribeReusable<Packet.FishBobblerInWater, LiteNetLib.NetPeer>(OnFishBobblerInWaterPacketReceived);
@@ -204,7 +206,18 @@ namespace Server
 
         void OnPlaceMinableObjectPacketReceived(Packet.Developer.DeveloperPlaceMinableObject obj, NetPeer peer)
         {
-            var id = _db.Write(obj.mineable);
+            var objCopy = obj.Copy();
+            try
+            {
+                ValidatePacket(objCopy);
+            }
+            catch (ArgumentException ex)
+            {
+                Console.WriteLine(String.Format("Failed to validate packet in OnPlaceMinableObjectPacketReceived from {0}: {1}", peer.EndPoint, ex.ToString()));
+                return;
+            }
+
+            var id = _db.Write(objCopy.mineable);
             ObjectSchema.Mineable m = _db.Read<ObjectSchema.Mineable>(id);
             SendToAllPlayers(this.Write(new Packet.PlaceMinableObject { mineable = m }));
         }
@@ -222,19 +235,71 @@ namespace Server
             SendToAllPlayers(this.Write(new Packet.PlacePlantableObject { plantable = readPlant}));
         }
 
-        void OnStartMiningPacketReceived(Packet.StartMining sm, NetPeer peer)
+        void OnEndMiningPacketReceived(Packet.EndMining em, NetPeer peer)
         {
+            Packet.EndMining emCopy = em.Copy();
             try
             {
-                ValidatePacket(sm);
+                ValidatePacket(emCopy);
+            }
+            catch (ArgumentException ex)
+            {
+                Console.WriteLine(String.Format("Failed to validate packet in OnEndMiningPacketReceived from {0}: {1}", peer.EndPoint, ex.ToString()));
+                return;
+            }
+
+            var p = _connectedPlayers[emCopy.userName];
+            if (p.miningState.miningId != emCopy.id)
+            {
+                throw new ArgumentException(String.Format("Player sended EndMining on id {0} but player state said that they were mining id {1}", emCopy.id, p.miningState.miningId));
+            }
+
+            // Add item to user inventory
+            var item = new ItemSchema.ItemDBSchema();
+            if (p.miningState.minableSubType == ObjectSchema.ObjectTypes.IMineableSubMineableType.OAK.Value)
+            {
+                item.uniqueName = ItemSchema.ItemNames.Wood.Value;
+            }
+            else if (p.miningState.minableSubType == ObjectSchema.ObjectTypes.IMineableSubMineableType.IRON.Value)
+            {
+                item.uniqueName = ItemSchema.ItemNames.Ore.Value;
+            }
+            else if (p.miningState.minableSubType == ObjectSchema.ObjectTypes.IMineableSubMineableType.STONE.Value)
+            {
+                item.uniqueName = ItemSchema.ItemNames.Ore.Value;
+            }
+            else
+            {
+                throw new ArgumentException(String.Format("smCopy.minableType type {0} not recognized.", p.miningState.minableSubType));
+            }
+
+            item.userName = p._userName;
+            item.quantity = p.miningState.minedInSession;
+            _db.AddToUserInventory(item);
+            SendInventoryToPlayer(p); // Send inventory to player.
+            if (!_db.Unlock(emCopy.id)) // Unlock object in database.
+            {
+                throw new Exception(String.Format("Failed to unlock mining object id '{0}' started mining by '{1}', this should never happen. Did object get unlocked somewhere else?", emCopy.id, emCopy.userName));
+            }
+
+            // TODO: Update object quantity in db.
+            // TODO: Validate that player isn't cheating. 
+            SendToAllOtherPlayers(em.userName, Write<Packet.EndMining>(em));
+        }
+
+        void OnStartMiningPacketReceived(Packet.StartMining sm, NetPeer peer)
+        {
+            Packet.StartMining smCopy = sm.Copy();
+            try
+            {
+                ValidatePacket(smCopy);
             }
             catch (ArgumentException ex)
             {
                 Console.WriteLine(String.Format("Failed to validate packet in OnStartMiningPacketReceived from {0}: {1}", peer.EndPoint, ex.ToString()));
                 return;
             }
-
-            Packet.StartMining smCopy = sm.Copy();
+            
             var p = _connectedPlayers[smCopy.userName];
             if (p.IsMining())
             {
@@ -242,7 +307,6 @@ namespace Server
                     String.Format("Player {0} sent StartMining but was already mining {1}. Resetting player state.",
                                   smCopy.userName, p.miningState.miningId));
                 _db.Unlock(p.miningState.miningId);
-                p.miningState.miningEndEventRef.Cancelled = true;
                 p.ResetState();
             }
 
@@ -253,51 +317,16 @@ namespace Server
                 return;
             }
 
-            DelayedEvent finishMiningEvent = new DelayedEvent(() =>  // This delayed event is cancelled if AbortMining is called.
-            {
-                if (!p.IsMining(smCopy.id))
-                {
-                    Console.WriteLine(String.Format("Player {0}, mineable {1} finishMiningEvent was executed but the player was not mining. " +
-                        "This should not happen as the event should have been cancelled.", smCopy.userName, smCopy.id));
-                    return;
-                }
-                p.EndMining(smCopy.id);
-                SendToAllPlayers(this.Write(new Packet.EndMining { id = smCopy.id, userName = smCopy.userName })); // Send finish mining notification to everyone including player.
-
-                // Add item to user inventory
-                var item = new ItemSchema.ItemDBSchema();
-                if (smCopy.minableType == ObjectSchema.ObjectTypes.IMineableMineableType.TREE.Value)
-                {
-                    item.uniqueName = ItemSchema.ItemNames.Wood.Value;
-                } 
-                else if (smCopy.minableType == ObjectSchema.ObjectTypes.IMineableMineableType.ROCK.Value)
-                {
-                    item.uniqueName = ItemSchema.ItemNames.Ore.Value;
-                }
-                else
-                {
-                    throw new ArgumentException(String.Format("smCopy.minableType type {0} not recognized.", smCopy.minableType));
-                }
-
-                item.userName = p._userName;
-                item.quantity = 1;
-                _db.AddToUserInventory(item);
-                SendInventoryToPlayer(p); // Send inventory to player.
-                if (!_db.Unlock(smCopy.id)) // Unlock object in database.
-                {
-                    throw new Exception(String.Format("Failed to unlock mining object id '{0}' started mining by '{1}', this should never happen. Did object get unlocked somewhere else?", smCopy.id, smCopy.userName));
-                }
-            });
-            p.StartMining(smCopy.id, finishMiningEvent);
+            p.StartMining(smCopy.id, smCopy.minableSubType);
             SendToAllOtherPlayers(smCopy.userName, this.Write<Packet.StartMining>(smCopy.Copy())); // Send notification to all other players.
-            AddDelayedEvent(finishMiningEvent, 3 * GameTime.SECOND);
         }
 
-        public void OnAbortMiningPacketReceived(Packet.AbortMining am, NetPeer peer) 
+        public void OnMinedQuantityReceived(Packet.MinedQuantity mq, NetPeer peer)
         {
+            var mqCopy = mq.Copy();
             try
             {
-                ValidatePacket(am);
+                ValidatePacket(mqCopy);
             }
             catch (ArgumentException ex)
             {
@@ -305,7 +334,25 @@ namespace Server
                 return;
             }
 
+            // TODO: Validate that player isn't cheating. 
+            var p = _connectedPlayers[mqCopy.userName];
+            p.MineQuantity(mqCopy.item.quantity, mqCopy.id);
+            SendToAllOtherPlayers(p, this.Write<Packet.MinedQuantity>(mqCopy));
+        }
+
+        public void OnAbortMiningPacketReceived(Packet.AbortMining am, NetPeer peer) 
+        {
             var amCopy = am.Copy();
+            try
+            {
+                ValidatePacket(amCopy);
+            }
+            catch (ArgumentException ex)
+            {
+                Console.WriteLine(String.Format("Failed to validate packet in OnAbortMiningPacketReceived from {0}: {1}", peer.EndPoint, ex.ToString()));
+                return;
+            }
+            
             var p = _connectedPlayers[amCopy.userName];
             if (!p.IsMining(amCopy.id))
             {
@@ -314,7 +361,6 @@ namespace Server
             }
 
             _db.Unlock(am.id);
-            p.miningState.miningEndEventRef.Cancelled = true;
             p.AbortMining(amCopy.id);
             SendToAllOtherPlayers(p, this.Write<Packet.AbortMining>(amCopy));
         }
@@ -421,6 +467,57 @@ namespace Server
 
                 if (String.IsNullOrEmpty(po.mineable.mineableType)) {
                     throw new ArgumentException("Placeable minable type in PlaceMinableObject packet is emtpy.");
+                }
+            }
+
+            if (packet is Packet.Developer.DeveloperPlaceMinableObject pmo)
+            {
+                if (pmo.mineable.x == 0 && pmo.mineable.y == 0 && pmo.mineable.z == 0 && pmo.mineable.rot_x == 0 && pmo.mineable.rot_y == 0 && pmo.mineable.rot_z == 0 && pmo.mineable.rot_w == 0)
+                {
+                    throw new ArgumentException("DeveloperPlaceMinableObject transform is empty.");
+                }
+
+                if (pmo.mineable.remainingQuantity == 0)
+                {
+                    throw new ArgumentException("DeveloperPlaceMinableObjectmineable.remainingQuantity is empty.");
+                }
+
+                if (String.IsNullOrEmpty(pmo.mineable.type))
+                {
+                    throw new ArgumentException("DeveloperPlaceMinableObject.mineable.type is empty.");
+                }
+
+                if (String.IsNullOrEmpty(pmo.mineable.size))
+                {
+                    throw new ArgumentException("DeveloperPlaceMinableObject.mineable.size is empty.");
+                }
+
+                if (String.IsNullOrEmpty(pmo.mineable.mineableType))
+                {
+                    throw new ArgumentException("DeveloperPlaceMinableObject.mineable.mineableType is empty.");
+                }
+
+                if (String.IsNullOrEmpty(pmo.mineable.subMineableType))
+                {
+                    throw new ArgumentException("DeveloperPlaceMinableObject.mineable.subMineableType is empty.");
+                }
+            }
+
+            if (packet is Packet.IItem itp)
+            {
+                if (String.IsNullOrEmpty(itp.item.uniqueName))
+                {
+                    throw new ArgumentException("IItem packet item.uniqueName is empty.");
+                }
+
+                if (itp.item.quantity == 0)
+                {
+                    throw new ArgumentException("IItem packet item.quantity is empty.");
+                }
+
+                if (String.IsNullOrEmpty(itp.item.userName))
+                {
+                    throw new ArgumentException("IItem packet item.userName is empty.");
                 }
             }
         }

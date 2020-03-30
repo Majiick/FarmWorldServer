@@ -16,7 +16,11 @@ namespace Server
         public struct MiningState
         {
             public string miningId;
-            public DelayedEvent miningEndEventRef;
+            public long timeStartedMining;
+            public string minableSubType;
+
+            // Quantity to see how much of an item the user mined in this session.
+            public int minedInSession;
         }
 
         public struct FishingState
@@ -122,15 +126,35 @@ namespace Server
             _stateMachine.Fire(Trigger.AbortFishing);
         }
 
-        public void StartMining(string id, DelayedEvent e)
+        public void StartMining(string id, string minableSubType)
         {
             if (miningState.miningId != null)
             {
                 Console.WriteLine(String.Format("Player {0} started mining object but their _miningId wasn't null, it was {1}.", _userName, miningState.miningId));
             }
+            if (String.IsNullOrEmpty(minableSubType))
+            {
+                Console.WriteLine(String.Format("Player {0} started mining but the passed in minableSubType is empty.", _userName));
+            }
             miningState.miningId = id;
-            miningState.miningEndEventRef = e;
+            miningState.timeStartedMining = GameTime.Instance().TickStartTime();
+            miningState.minableSubType = minableSubType;
             _stateMachine.Fire(Trigger.StartMining);
+        }
+
+        public void MineQuantity(int quantity, string miningObjectId)
+        {
+            if (quantity == 0)
+            {
+                throw new ArgumentException("Quantity is empty.");
+            }
+
+            if (!IsMining(miningObjectId))
+            {
+                throw new Exception("MineQuantity was called but player is not mining or is not mining id:" + miningObjectId);
+            }
+
+            miningState.minedInSession += quantity;
         }
 
         public void AbortMining(string id)
@@ -139,8 +163,7 @@ namespace Server
             {
                 Console.WriteLine(String.Format("Player {0} tried to AbortMining on Object {1}, but they were mining object {2}", _userName, id, miningState.miningId));
             }
-            miningState.miningId = null;
-            miningState.miningEndEventRef = null;
+            miningState = new MiningState();
             _stateMachine.Fire(Trigger.AbortMining);
         }
 
@@ -151,16 +174,15 @@ namespace Server
                 Console.WriteLine(String.Format("Player {0} tried to EndMining on Object {1}, but they were mining object {2}", _userName, id, miningState.miningId));
             }
 
-            miningState.miningId = null;
-            miningState.miningEndEventRef = null;
+            miningState = new MiningState();
             _stateMachine.Fire(Trigger.EndMining);
         }
 
         public bool IsMining(string id)
         {
-            if (_stateMachine.IsInState(State.Mining) && miningState.miningId == null && miningState.miningEndEventRef == null)
+            if ((_stateMachine.IsInState(State.Mining) && miningState.miningId == null) || miningState.timeStartedMining == 0)
             {
-                Console.WriteLine(String.Format("State was mining but id or miningEndEventRef was null for player {0}", _userName));
+                Console.WriteLine(String.Format("State was mining but id or timeStartedMining==0 for player {0}", _userName));
             }
 
             if (_stateMachine.IsInState(State.Mining) && miningState.miningId == id)
@@ -174,9 +196,9 @@ namespace Server
 
         public bool IsMining()
         {
-            if (_stateMachine.IsInState(State.Mining) && miningState.miningId == null && miningState.miningEndEventRef == null)
+            if ((_stateMachine.IsInState(State.Mining) && miningState.miningId == null) || miningState.timeStartedMining != 0)
             {
-                Console.WriteLine(String.Format("State was mining but id or miningEndEventRef was null for player {0}", _userName));
+                Console.WriteLine(String.Format("State was mining but id or timeStartedMining==0 for player {0}", _userName));
             }
             return _stateMachine.IsInState(State.Mining);
         }

@@ -32,6 +32,11 @@ namespace Packet {
         float rot_w { get; set; }
     }
 
+    interface IItem
+    {
+        ItemSchema.ItemDBSchema item { get; set; }
+    }
+
     // UserInventory is only for Player.
     public class UserInventory : ICopyAble<UserInventory> {
         public ItemSchema.ItemDBSchema[] items { get; set; }
@@ -59,24 +64,32 @@ namespace Packet {
         }
     }
 
+    // Start Planting is used server -> player
+    class StartPlanting : ObjectIdentifier, PlayerIdentifier, ICopyAble<StartPlanting>
+    {
+        public string id { get; set; }
+        public string userName { get; set; }
+
+        public StartPlanting Copy()
+        {
+            return (StartPlanting)this.MemberwiseClone();
+        }
+    }
+
+    // Mining workflow:
+    // User sends StartMining, server sends to everyone else.
+    // The server locks the object. If lock failed, then the server sends abort mining to the user.
+    // The player sends MinedQuantity to the server, server sends to everyone else.
+    // The played sends EndMining, server sends to everyone else.
+
     // StartMining is for both server and player.
     class StartMining : ObjectIdentifier, PlayerIdentifier, ICopyAble<StartMining> {
         public string id { get; set; }
         public string userName { get; set; }
-        public string minableType { get; set; }
+        public string minableSubType { get; set; }
 
         public StartMining Copy() {
             return (StartMining)this.MemberwiseClone();
-        }
-    }
-
-    // Start Planting is used server -> player
-    class StartPlanting : ObjectIdentifier, PlayerIdentifier, ICopyAble<StartPlanting> {
-        public string id { get; set; }
-        public string userName { get; set; }
-
-        public StartPlanting Copy() {
-            return (StartPlanting)this.MemberwiseClone();
         }
     }
 
@@ -90,26 +103,48 @@ namespace Packet {
         }
     }
 
+    // MinedQuantity is for both server and player.
+    class MinedQuantity : ObjectIdentifier, PlayerIdentifier, ICopyAble<MinedQuantity>, IItem
+    {
+        public string id { get; set; }  // id of object being mined
+        public string userName { get; set; }  // userName of user mining the object
 
-    // Abort minind is for server and player.
-    // Abort mining is sent to server when a player interrupts mining.
-    // It is also relayed from server to clients.
-    class AbortMining : ObjectIdentifier, PlayerIdentifier, ICopyAble<AbortMining> {
-        public string id { get; set; }  // id of mineable object.
-        public string userName { get; set; }  // userName of player who was mining.
+        // What item the user received.
+        // The server verifies if this value is plausible.
+        public ItemSchema.ItemDBSchema item { get; set; }
 
-        public AbortMining Copy() {
-            return (AbortMining)this.MemberwiseClone();
+        public MinedQuantity Copy()
+        {
+            return (MinedQuantity)this.MemberwiseClone();
         }
     }
 
     // EndMining is only for player.
-    class EndMining : ObjectIdentifier, PlayerIdentifier, ICopyAble<EndMining> {
+    class EndMining : ObjectIdentifier, PlayerIdentifier, ICopyAble<EndMining>, IItem
+    {
         public string id { get; set; }  // id of mineable object.
         public string userName { get; set; }  // userName of player who was mining.
 
+        // How much bonus material the user gets when successfully mines an object. 
+        // Server verifies this value as well.
+        public ItemSchema.ItemDBSchema item { get; set; }
+
         public EndMining Copy() {
             return (EndMining)this.MemberwiseClone();
+        }
+    }
+
+    // Abort mining is for server and player.
+    // Abort mining is sent to server when a player interrupts mining.
+    // It is also relayed from server to clients.
+    class AbortMining : ObjectIdentifier, PlayerIdentifier, ICopyAble<AbortMining>
+    {
+        public string id { get; set; }  // id of mineable object.
+        public string userName { get; set; }  // userName of player who was mining.
+
+        public AbortMining Copy()
+        {
+            return (AbortMining)this.MemberwiseClone();
         }
     }
 

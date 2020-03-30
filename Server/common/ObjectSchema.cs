@@ -19,6 +19,7 @@ namespace ObjectSchema {
         *   1. Make the struct, make sure IFromJson and IObject is interfaced correctly (check type template).
         *   2. Make sure to update Deserialize and Deserialize.
         *   3. Make sure to update ConstructObject.
+        *   4. Make sure to update FromJson.
     */
 #if !UNITY_STANDALONE
     interface IFromJson<T> {
@@ -41,6 +42,7 @@ namespace ObjectSchema {
     interface IMineable {
         string mineableType { get; set; }
         string size { get; set; }
+        int remainingQuantity { get; set; }
     }
 
     public struct Mineable : Packet.ITransform, IObject, IMineable, ILockable, INetSerializable
@@ -56,6 +58,7 @@ namespace ObjectSchema {
         public string mineableType { get; set; }
         public string subMineableType { get; set; }
         public string size { get; set; }
+        public int remainingQuantity { get; set; }
 
         // Transform
         public float x { get; set; }
@@ -77,6 +80,7 @@ namespace ObjectSchema {
             mineableType = reader.GetString();
             subMineableType = reader.GetString();
             size = reader.GetString();
+            remainingQuantity = reader.GetInt();
 
             x = reader.GetFloat();
             y = reader.GetFloat();
@@ -97,6 +101,7 @@ namespace ObjectSchema {
             writer.Put(mineableType);
             writer.Put(subMineableType);
             writer.Put(size);
+            writer.Put(remainingQuantity);
 
             writer.Put(x);
             writer.Put(y);
@@ -118,6 +123,7 @@ namespace ObjectSchema {
             obj.mineableType = json.Value<string>("mineableType");
             obj.subMineableType = json.Value<string>("subMineableType");
             obj.size = json.Value<string>("size");
+            obj.remainingQuantity = json.Value<int>("remainingQuantity");
             obj.x = json.Value<float>("x");
             obj.y = json.Value<float>("y");
             obj.z = json.Value<float>("z");
@@ -268,10 +274,9 @@ namespace ObjectSchema {
         }
 
 
-
+#if !UNITY_STANDALONE
         // Helpers
         // Constructs the correct object from json and sets the id.
-#if !UNITY_STANDALONE
         public static IObject ConstructObject(string id, Newtonsoft.Json.Linq.JObject json) {
             string iObjectType = json.Value<string>("type");
             if (iObjectType == IObjectType.MINEABLE.Value) {
