@@ -216,9 +216,8 @@ namespace Server
                 Console.WriteLine(String.Format("Failed to validate packet in OnPlaceMinableObjectPacketReceived from {0}: {1}", peer.EndPoint, ex.ToString()));
                 return;
             }
-            ObjectSchema.Mineable toWrite = objCopy.mineable;
-            toWrite.remainingQuantity = GameStatistics.GameStatistics.StartingQuantity(objCopy.mineable.subMineableType, objCopy.mineable.size);
-            var id = _db.Write(toWrite);
+            
+            var id = _db.Write(objCopy.mineable);
             ObjectSchema.Mineable m = _db.Read<ObjectSchema.Mineable>(id);
             SendToAllPlayers(this.Write(new Packet.PlaceMinableObject { mineable = m }));
         }
@@ -250,10 +249,6 @@ namespace Server
             }
 
             var p = _connectedPlayers[emCopy.userName];
-            if (p.miningState.miningId != emCopy.id)
-            {
-                throw new ArgumentException(String.Format("Player sended EndMining on id {0} but player state said that they were mining id {1}", emCopy.id, p.miningState.miningId));
-            }
 
             // Add item to user inventory
             var item = new ItemSchema.ItemDBSchema();
@@ -284,7 +279,8 @@ namespace Server
             }
 
             // TODO: Update object quantity in db.
-            // TODO: Validate that player isn't cheating. 
+            // TODO: Validate that player isn't cheating.
+            p.EndMining(emCopy.id);
             SendToAllOtherPlayers(em.userName, Write<Packet.EndMining>(em));
         }
 
