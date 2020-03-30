@@ -5,38 +5,38 @@ using System.Collections.Generic;
 using System.Text;
 using static ObjectSchema.ObjectTypes;
 
-namespace Server.common
+namespace GameStatistics
 {
     public static class GameStatistics
     {
-        public static int StartingQuantity(IMineableSubMineableType subType, IMineableSize size)
+        public static int StartingQuantity(string subType, string size)
         {
             int quantity;
 
-            if (subType.Value == IMineableSubMineableType.IRON.Value)
+            if (subType == IMineableSubMineableType.IRON.Value)
             {
                 quantity = 5;
-            } else if (subType.Value == IMineableSubMineableType.STONE.Value)
+            } else if (subType == IMineableSubMineableType.STONE.Value)
             {
                 quantity = 20;
             } else
             {
-                throw new ArgumentException(String.Format("The subType {0} is not known.", subType.Value));
+                throw new ArgumentException(String.Format("The subType {0} is not known.", subType));
             }
 
             
-            if (size.Value ==  IMineableSize.SMALL.Value)
+            if (size ==  IMineableSize.SMALL.Value)
             {
                 quantity *= 1;
-            } else if (size.Value == IMineableSize.MEDIUM.Value)
+            } else if (size == IMineableSize.MEDIUM.Value)
             {
                 quantity *= 2;
-            } else if (size.Value == IMineableSize.LARGE.Value)
+            } else if (size == IMineableSize.LARGE.Value)
             {
                 quantity *= 4;
             } else
             {
-                throw new ArgumentException(String.Format("The size {0} is not known.", size.Value));
+                throw new ArgumentException(String.Format("The size {0} is not known.", size));
             }
 
             return quantity;

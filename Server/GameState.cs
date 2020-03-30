@@ -216,8 +216,9 @@ namespace Server
                 Console.WriteLine(String.Format("Failed to validate packet in OnPlaceMinableObjectPacketReceived from {0}: {1}", peer.EndPoint, ex.ToString()));
                 return;
             }
-
-            var id = _db.Write(objCopy.mineable);
+            ObjectSchema.Mineable toWrite = objCopy.mineable;
+            toWrite.remainingQuantity = GameStatistics.GameStatistics.StartingQuantity(objCopy.mineable.subMineableType, objCopy.mineable.size);
+            var id = _db.Write(toWrite);
             ObjectSchema.Mineable m = _db.Read<ObjectSchema.Mineable>(id);
             SendToAllPlayers(this.Write(new Packet.PlaceMinableObject { mineable = m }));
         }
