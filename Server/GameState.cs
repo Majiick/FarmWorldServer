@@ -317,7 +317,7 @@ namespace Server
                 return;
             }
 
-            p.StartMining(smCopy.id, smCopy.minableSubType);
+            p.StartMining(smCopy.id, smCopy.minableType, smCopy.minableSubType);
             SendToAllOtherPlayers(smCopy.userName, this.Write<Packet.StartMining>(smCopy.Copy())); // Send notification to all other players.
         }
 

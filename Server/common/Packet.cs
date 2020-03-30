@@ -86,6 +86,7 @@ namespace Packet {
     class StartMining : ObjectIdentifier, PlayerIdentifier, ICopyAble<StartMining> {
         public string id { get; set; }
         public string userName { get; set; }
+        public string minableType { get; set; }
         public string minableSubType { get; set; }
 
         public StartMining Copy() {

@@ -17,6 +17,7 @@ namespace Server
         {
             public string miningId;
             public long timeStartedMining;
+            public string minableType;
             public string minableSubType;
 
             // Quantity to see how much of an item the user mined in this session.
@@ -126,11 +127,15 @@ namespace Server
             _stateMachine.Fire(Trigger.AbortFishing);
         }
 
-        public void StartMining(string id, string minableSubType)
+        public void StartMining(string id, string minableType, string minableSubType)
         {
             if (miningState.miningId != null)
             {
                 Console.WriteLine(String.Format("Player {0} started mining object but their _miningId wasn't null, it was {1}.", _userName, miningState.miningId));
+            }
+            if (String.IsNullOrEmpty(minableType))
+            {
+                Console.WriteLine(String.Format("Player {0} started mining but the passed in minableType is empty.", _userName));
             }
             if (String.IsNullOrEmpty(minableSubType))
             {
@@ -138,6 +143,7 @@ namespace Server
             }
             miningState.miningId = id;
             miningState.timeStartedMining = GameTime.Instance().TickStartTime();
+            miningState.minableType = minableType;
             miningState.minableSubType = minableSubType;
             _stateMachine.Fire(Trigger.StartMining);
         }
