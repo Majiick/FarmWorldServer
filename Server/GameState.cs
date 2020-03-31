@@ -517,6 +517,19 @@ namespace Server
                     throw new ArgumentException("IItem packet item.userName is empty.");
                 }
             }
+
+            if (packet is Packet.MinedQuantity mq)
+            {
+                if (mq.fadeScale == 0)
+                {
+                    throw new ArgumentException("MinedQuantity packet fadeScale is empty.");
+                }
+
+                if (mq.notificationScale == 0)
+                {
+                    throw new ArgumentException("MinedQuantity packet notificationScale is empty.");
+                }
+            }
         }
     }
 }

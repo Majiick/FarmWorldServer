@@ -125,6 +125,8 @@ namespace Packet
     {
         public string id { get; set; }  // id of object being mined
         public string userName { get; set; }  // userName of user mining the object
+        public float fadeScale { get; set; }
+        public float notificationScale { get; set; }
 
         // What item the user received.
         // The server verifies if this value is plausible.
