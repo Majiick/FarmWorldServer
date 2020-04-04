@@ -42,7 +42,10 @@ namespace Server
         {
             foreach (PlayerState player in _connectedPlayers.Values)
             {
-                SendToAllOtherPlayers(player, this.Write(player.lastTransform));
+                if (player.lastTransform != null)
+                {
+                    SendToAllOtherPlayers(player, this.Write(player.lastTransform));
+                }
             }
 
             ExecuteDelayedEvents();
