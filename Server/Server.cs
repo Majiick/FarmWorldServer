@@ -93,9 +93,13 @@ namespace Server
             _precisionTime.Start();
             while (!Console.KeyAvailable)
             {
+                long unadjustedTickStartTime = _precisionTime.ElapsedMilliseconds;
                 GameTime.Instance().UpdateTickStartTime(_precisionTime.ElapsedMilliseconds); // Update the tick start time.
                 _server.PollEvents();
                 gameState.Tick();
+                if (_precisionTime.ElapsedMilliseconds - unadjustedTickStartTime > 1000 / GameConfig.Instance().config.ticksPerSecond) {
+                    Console.WriteLine(String.Format("Tick took {0} milliseconds which is past the tick rate.", _precisionTime.ElapsedMilliseconds - unadjustedTickStartTime));
+                }
                 // Wait until time for next tick.
                 while (GameTime.Instance().TickStartTime() + _precisionTime.ElapsedMilliseconds < GameTime.Instance().TickStartTime() + (1000 / GameConfig.Instance().config.ticksPerSecond))
                 {

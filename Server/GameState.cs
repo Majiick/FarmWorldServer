@@ -376,7 +376,8 @@ namespace Server
                 Console.WriteLine(String.Format("Failed to validate packet in OnPlayerTransformReceived from {0}: {1}", peer.EndPoint, ex.ToString()));
                 return;
             }
-
+            //Console.WriteLine(transform.x);
+            //Console.WriteLine(transform.z);
             _connectedPlayers[transform.userName].lastTransform = transform.Copy();
         }
 
@@ -399,7 +400,6 @@ namespace Server
 
             Console.WriteLine("Player {0} logged in.", login.userName);
             _connectedPlayers[login.userName] = new PlayerState(login.userName, peer);
-
             // Send player's inventory to them.
             SendInventoryToPlayer(_connectedPlayers[login.userName]);
 
