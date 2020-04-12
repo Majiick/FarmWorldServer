@@ -17,4 +17,12 @@ namespace Server {
             return growthTime;
         }
     }
+
+    public static bool CheckHarvestable(ObjectSchema.Plantable plantable) {
+        if (plantable.timePlanted + plantable.growthTime >= GameTime.Instance().TickStartTime()) {
+            return true;
+        }
+
+        return false;
+    }
 }

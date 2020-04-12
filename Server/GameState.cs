@@ -226,6 +226,59 @@ namespace Server
             SendToAllPlayers(this.Write(new Packet.PlaceMinableObject { mineable = m }));
         }
 
+        void OnStartHarvestReceived(Packet.StartHarvest startHarvestPacket, NetPeer peer) {
+            ObjectSchema.Plantable readPlant = _db.Read<ObjectSchema.Plantable>(startHarvestPacket.id);
+
+            //Check if object is locked first if locked return
+            // SendToAllPlayers(this.Write(new Packet.AbortHarvest { userName = startHarvestPacket.userName, message = "This object is locked by another player" }));
+
+            //Allow the player to harvest
+            if (!PlantManager.CheckHarvestable(readPlant)) {
+                SendToAllPlayers(this.Write(new Packet.AbortHarvest { userName = startHarvestPacket.userName, message = "This plant is not yet harvestable" }));
+                return;
+            }
+
+            DelayedEvent finishHarvesting = new DelayedEvent(() =>  // This delayed event is cancelled if AbortMining is called.
+            {
+                SendToAllPlayers();
+                /*
+                if (!p.IsMining(smCopy.id)) {
+                    Console.WriteLine(String.Format("Player {0}, mineable {1} finishMiningEvent was executed but the player was not mining. " +
+                        "This should not happen as the event should have been cancelled.", smCopy.userName, smCopy.id));
+                    return;
+                }
+                */
+                //p.EndMining(smCopy.id);
+                //SendToAllPlayers(this.Write(new Packet.EndMining { id = smCopy.id, userName = smCopy.userName })); // Send finish mining notification to everyone including player.
+
+                // Add item to user inventory
+                /*
+                var item = new ItemSchema.ItemDBSchema();
+                if (smCopy.minableType == ObjectSchema.ObjectTypes.IMineableMineableType.TREE.Value) {
+                    item.uniqueName = ItemSchema.ItemNames.Wood.Value;
+                } else if (smCopy.minableType == ObjectSchema.ObjectTypes.IMineableMineableType.ROCK.Value) {
+                    item.uniqueName = ItemSchema.ItemNames.Ore.Value;
+                } else {
+                    throw new ArgumentException(String.Format("smCopy.minableType type {0} not recognized.", smCopy.minableType));
+                }
+                */
+
+                //item.userName = p._userName;
+                //item.quantity = 1;
+                //_db.AddToUserInventory(item);
+                //SendInventoryToPlayer(p); // Send inventory to player.
+                //if (!_db.Unlock(smCopy.id)) // Unlock object in database.
+                //{
+                //    throw new Exception(String.Format("Failed to unlock mining object id '{0}' started mining by '{1}', this should never happen. Did object get unlocked somewhere else?", smCopy.id, smCopy.userName));
+                //}
+            });
+
+            p.StartHarvesting(smCopy.id, finishHarvesting);
+            // Send notification to all other players. that player has started harvesting
+            AddDelayedEvent(finishHarvesting, 2 * GameTime.SECOND);
+        }
+           
+
         void OnPlacePlantableObjectPacketReceived(Packet.PlacePlantableObject placePlantableObject, NetPeer peer) 
         {
             Packet.PlacePlantableObject ppCopy = placePlantableObject.Copy();
