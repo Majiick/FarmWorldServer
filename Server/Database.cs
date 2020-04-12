@@ -249,7 +249,6 @@ namespace Server
                 throw new Exception(String.Format("Unlock on object id '{0}' did not work: {1}.", id, replaceResult.Status));
             }
 
-
             return true;
         }
 
