@@ -199,6 +199,20 @@ namespace Packet
         }
     }
 
+    class ReceivedXP : PlayerIdentifier
+    {
+        public string userName { get; set; }
+        public int xpTotal { get; set; }
+        public int xpGained { get; set; }
+    }
+
+    // OnLoginPlayerState is only for client.
+    class LoginInitialPlayerState : PlayerIdentifier
+    {
+        public string userName { get; set; }
+        public int xp { get; set; }
+    }
+
     // Login is only for server.
     class Login : PlayerIdentifier
     {

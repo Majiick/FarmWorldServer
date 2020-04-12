@@ -50,6 +50,7 @@ namespace Server
         // General information.
         public NetPeer _netPeer;
         public string _userName;
+        public int totalXp;
         public Packet.PlayerTransform lastTransform;
 
         public PlayerState(string userName, NetPeer netPeer)
@@ -208,6 +209,10 @@ namespace Server
                 Console.WriteLine(String.Format("State was mining but id or timeStartedMining==0 for player {0}", _userName));
             }
             return _stateMachine.IsInState(State.Mining);
+        }
+
+        public void AddXP(int xp) {
+            totalXp += xp;
         }
     }
 }

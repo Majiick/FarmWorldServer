@@ -51,6 +51,33 @@ namespace GameStatistics
             return quantity;
         }
 
+        public static int XpForMining(string subType, string size) {
+            int xp;
+
+            if (subType == IMineableSubMineableType.IRON.Value) {
+                xp = 1;
+            } else if (subType == IMineableSubMineableType.STONE.Value) {
+                xp = 1;
+            } else if (subType == IMineableSubMineableType.OAK.Value) {
+                xp = 1;
+            } else {
+                throw new ArgumentException(String.Format("The subType {0} is not known.", subType));
+            }
+
+
+            if (size == IMineableSize.SMALL.Value) {
+                xp *= 1;
+            } else if (size == IMineableSize.MEDIUM.Value) {
+                xp *= 2;
+            } else if (size == IMineableSize.LARGE.Value) {
+                xp *= 4;
+            } else {
+                throw new ArgumentException(String.Format("The size {0} is not known.", size));
+            }
+
+            return xp;
+        }
+
         public static ItemSchema.ItemDBSchema ItemPerHit(IMineableSubMineableType subType, string userName)
         {
             var item = new ItemSchema.ItemDBSchema();

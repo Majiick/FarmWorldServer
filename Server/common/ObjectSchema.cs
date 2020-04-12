@@ -45,6 +45,75 @@ namespace ObjectSchema {
         int remainingQuantity { get; set; }
     }
 
+    public struct Player : Packet.ITransform, IObject, INetSerializable
+#if !UNITY_STANDALONE
+        , IFromJson<Player>
+#endif
+    {
+        public string userName { get; set; }
+        public int xp { get; set; }
+
+        //IObject
+        public string id { get; set; }
+        public string type { get; set; }
+
+        // Transform
+        public float x { get; set; }
+        public float y { get; set; }
+        public float z { get; set; }
+        public float rot_x { get; set; }
+        public float rot_y { get; set; }
+        public float rot_z { get; set; }
+        public float rot_w { get; set; }
+
+        public void Deserialize(NetDataReader reader) {
+            userName = reader.GetString();
+            xp = reader.GetInt();
+
+            id = reader.GetString();
+            type = reader.GetString();
+
+            x = reader.GetFloat();
+            y = reader.GetFloat();
+            z = reader.GetFloat();
+            rot_x = reader.GetFloat();
+            rot_y = reader.GetFloat();
+            rot_z = reader.GetFloat();
+            rot_w = reader.GetFloat();
+        }
+
+        public void Serialize(NetDataWriter writer) {
+            writer.Put(userName);
+            writer.Put(xp);
+
+            writer.Put(id);
+            writer.Put(type);
+
+            writer.Put(x);
+            writer.Put(y);
+            writer.Put(z);
+            writer.Put(rot_x);
+            writer.Put(rot_y);
+            writer.Put(rot_z);
+            writer.Put(rot_w);
+        }
+
+#if !UNITY_STANDALONE
+        public void FromJson(Newtonsoft.Json.Linq.JObject json, ref Player obj) {
+            obj.userName = json.Value<string>("userName");
+            obj.xp = json.Value<int>("xp");
+            obj.id = json.Value<string>("id");
+            obj.x = json.Value<float>("x");
+            obj.y = json.Value<float>("y");
+            obj.z = json.Value<float>("z");
+            obj.rot_x = json.Value<float>("rot_x");
+            obj.rot_y = json.Value<float>("rot_y");
+            obj.rot_z = json.Value<float>("rot_z");
+            obj.rot_w = json.Value<float>("rot_w");
+        }
+#endif
+    }
+
     public struct Mineable : Packet.ITransform, IObject, IMineable, ILockable, INetSerializable
 #if !UNITY_STANDALONE
         , IFromJson<Mineable>
@@ -241,6 +310,7 @@ namespace ObjectSchema {
             public static IObjectType MINEABLE { get { return new IObjectType("MINEABLE"); } }
             public static IObjectType FISHABLE { get { return new IObjectType("FISHABLE"); } }
             public static IObjectType PLANTABLE { get { return new IObjectType("PLANTABLE"); } }
+            public static IObjectType PLAYER { get { return new IObjectType("PLAYER"); } }
         }
 
         //Plantable

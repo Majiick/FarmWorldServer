@@ -37,6 +37,61 @@ namespace Server
             var upsert = _bucket.Upsert(document);
         }
 
+        public void AddXP(string userName, int xp) {
+            var player = GetPlayer(userName);
+            int newXP = player.xp + xp;
+
+            var queryRequest = new QueryRequest()
+                .Statement("UPDATE `FarmWorld` SET xp=$1 WHERE userName=$2 AND type='PLAYER'")
+                .AddPositionalParameter(newXP)
+                .AddPositionalParameter(userName);
+            var result = _bucket.Query<dynamic>(queryRequest);
+            if (!result.Success) {
+                throw new Exception(String.Format("AddXP failed to find player {0}", userName));
+            }
+        }
+
+        public ObjectSchema.Player GetPlayer(string userName) {
+            var queryRequest = new QueryRequest()
+                .Statement("SELECT meta(`FarmWorld`).id, * FROM `FarmWorld` WHERE userName=$1 AND type='PLAYER'")
+                .AddPositionalParameter(userName);
+            var result = _bucket.Query<dynamic>(queryRequest);
+            if (!result.Success) {
+                throw new Exception(String.Format("GetPlayer initial queryRequest failed: {0}", result.Status));
+            }
+            if (result.Rows.Count > 1) {
+                throw new Exception(String.Format("GetPlayer initial query returned more than 1 row for user {0}.", userName));
+            }
+
+            if (result.Rows.Count == 0) {  // Write new empty player.
+                WritePlayer(new ObjectSchema.Player { userName = userName, xp = 0});
+                return new ObjectSchema.Player { userName = userName, xp = 0 };
+            } else {
+                var ret = new ObjectSchema.Player { userName = userName, xp = 0 };
+                var document = result.Rows[0].Document;
+                ret.FromJson(document.Content, ref ret);
+                ret.id = document.Id;
+
+                return ret;
+            }
+        }
+
+        public void WritePlayer(ObjectSchema.Player player) {
+            var idResult = _bucket.Increment("PlayerIdCounter");
+            if (!idResult.Success) {
+                throw new Exception("Failed to get next increment for UserItemInventoryCounter.");
+            }
+
+            var document = new Document<dynamic> {
+                Id = "player" + idResult.Value.ToString(),
+                Content = player
+            };
+            var upsert = _bucket.Upsert(document);
+            if (!upsert.Success) {
+                throw new Exception(String.Format("Upserting item failed for user {0}", player.userName));
+            }
+        }
+
         public void AddToUserInventory(ItemSchema.ItemDBSchema item)
         {
             var queryRequest = new QueryRequest()
