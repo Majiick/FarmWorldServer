@@ -80,6 +80,37 @@ namespace Packet {
         }
     }
 
+    //This is sent from client to server
+    class StartHarvest : ObjectIdentifier, PlayerIdentifier, ICopyAble<StartHarvest> {
+        public string id { get; set; }
+        public string userName { get; set; }
+
+        public StartHarvest Copy() {
+            return (StartHarvest)this.MemberwiseClone();
+        }
+    }
+
+    //This is sent from server to client if the object being harvested cannot be harvested/somoneles harvesting
+    class AbortHarvest : ObjectIdentifier, PlayerIdentifier, ICopyAble<AbortHarvest> {
+        public string id { get; set; }
+        public string userName { get; set; }
+        public string message { get; set; }
+
+        public AbortHarvest Copy() {
+            return (AbortHarvest)this.MemberwiseClone();
+        }
+    }
+
+    //This is sent from server to client if the object being harvested cannot be harvested/somoneles harvesting
+    class AllowHarvest : ObjectIdentifier, PlayerIdentifier, ICopyAble<AllowHarvest> {
+        public string id { get; set; }
+        public string userName { get; set; }
+
+        public AllowHarvest Copy() {
+            return (AllowHarvest)this.MemberwiseClone();
+        }
+    }
+
     // MiningLockFailed is only for Player.
     class MiningLockFailed : ObjectIdentifier, PlayerIdentifier, ICopyAble<MiningLockFailed> {
         public string id { get; set; }
