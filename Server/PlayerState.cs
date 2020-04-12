@@ -157,7 +157,8 @@ namespace Server
 
             if (!IsMining(miningObjectId))
             {
-                throw new Exception("MineQuantity was called but player is not mining or is not mining id:" + miningObjectId);
+                Console.WriteLine(String.Format("MineQuantity was called but player {0} is not mining or is not mining id: {1}", _userName, miningObjectId));
+                return;
             }
 
             miningState.minedInSession += quantity;

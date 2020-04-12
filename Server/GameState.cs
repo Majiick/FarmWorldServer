@@ -84,6 +84,7 @@ namespace Server
 
         void SendToAllOtherPlayers(PlayerState excluded, byte[] bytes)
         {
+            //Console.WriteLine("Seding pos");
             foreach (PlayerState player in _connectedPlayers.Values)
             {
                 if (player == excluded) continue;
@@ -400,6 +401,7 @@ namespace Server
 
             Console.WriteLine("Player {0} logged in.", login.userName);
             _connectedPlayers[login.userName] = new PlayerState(login.userName, peer);
+
             // Send player's inventory to them.
             SendInventoryToPlayer(_connectedPlayers[login.userName]);
 
