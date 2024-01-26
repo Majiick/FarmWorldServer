@@ -103,6 +103,8 @@ namespace Server
                 // Wait until time for next tick.
                 while (_precisionTime.ElapsedMilliseconds - unadjustedTickStartTime < 1000 / GameConfig.Instance().config.ticksPerSecond)
                 {
+                    // This while loop should actually just be empty. We should probably be completely hot-looping this thread for maximum precision.
+                    // Question though: Do we need better than 1-5ms resolution?
                     Thread.Sleep(1);
                 }
             }
